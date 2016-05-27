@@ -1,0 +1,14 @@
+1. 优化代码size和time
+2. 避免编译器过于复杂
+3. 去除冗余操作（if（0）去掉）
+4. 常量传播、预处理
+5. 函数替换、替换尾递归
+6. 分析比例
+7. 流图 点是block 边是跳转
+8. （X+1）(X+1) -> (x+1)^2
+9. error type :
+ mismatch undefined const redeclaration
+
+报告：
+   技术
+   测试
