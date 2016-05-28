@@ -36,3 +36,57 @@ ZJU standard C Compiler
 
 ##遥远的祝福
 祝大家大程满分，如果可以的话，希望能在下个星期日之前完成v1.0
+
+##Problems
+0. 错误处理
+
+1. columns 的计算
+
+2. typedef 的语法树可能有点问题
+
+typedef struct{
+    int a;
+    double c;
+}mytype;
+】
+语法树：
+
+declaration
+    declaration_specifiers
+        storage_class_specifier
+            typedef
+        declaration_specifiers
+            type_specifier
+                struct_or_union_specifier
+                    struct_or_union
+                        struct
+                    {
+                    struct_declaration_list
+                        struct_declaration_list
+                            struct_declaration
+                                specifier_qualifier_list
+                                    type_specifier
+                                        int
+                                struct_declarator_list
+                                    struct_declarator
+                                        declarator
+                                            direct_declarator
+                                                a
+                                ;
+                        struct_declaration
+                            specifier_qualifier_list
+                                type_specifier
+                                    double
+                            struct_declarator_list
+                                struct_declarator
+                                    declarator
+                                        direct_declarator
+                                            c
+                            ;
+                    }
+    init_declarator_list
+        init_declarator
+            declarator
+                direct_declarator
+                    mytype
+    ;

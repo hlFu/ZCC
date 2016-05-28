@@ -8,4 +8,4 @@ class TreeNode:
     nodeKind = UNDEFINED  # enum in NodeKind
     kind     = UNDEFINED  # enum in StmtKind, ExpKind
     attr     = UNDEFINED  # enum in ExpKind
-    type     = UNDEFINED  # enum in ExpType
+    type_     = UNDEFINED  # enum in ExpType
