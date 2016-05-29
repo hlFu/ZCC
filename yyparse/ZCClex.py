@@ -5,21 +5,18 @@ import ply.yacc as yacc
 from pprint import pprint
 
 lexErrorInfo = []
+#column = 0
 
 # Compute column. 
 #     input is the input text string
 #     token is a token instance
-def find_column(input,token):
+def find_column(input, token):
 	last_cr = input.rfind('\n',0,token.lexpos)
 	if last_cr < 0:
 		last_cr = 0
-	column = 1
-	for i in range(token.lexpos - last_cr):
-		if(input[last_cr + i] == '\t'):
-			print "tab"
-			column += 8 - (column % 8)
-		else:
-			column += 1
+	column = token.lexpos - last_cr
+#	print "lexpos: ", token.lexpos, " last_cr: ", last_cr
+
 	return column
 	
 	
@@ -179,6 +176,7 @@ def t_newline(t):
 	r'\n+'
 	t.lexer.lineno += len(t.value)
 	
+
 t_ignore  = ' \t'
 	
 def t_error(t):
@@ -213,4 +211,4 @@ def test_lex():
 			break
 		print tok.value, find_column(lexer.lexdata, tok)
 
-test_lex()
+#test_lex()

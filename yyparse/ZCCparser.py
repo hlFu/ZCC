@@ -9,6 +9,14 @@ def construct_node(p, parent_name):
 	p[0] = 	parent_name
 	p[0] = list(p)
 
+
+#def p_error_unit(p):
+#	"""
+#	error_unit : error
+#	"""
+#	print("error_unit")
+#	construct_node(p, "error_unit")
+	
 def p_translation_unit(p):
 	"""
 	translation_unit : external_declaration
@@ -18,9 +26,10 @@ def p_translation_unit(p):
 	
 def p_external_declaration(p):
 	"""
-	external_declaration : function_definition
 	external_declaration : declaration
+	external_declaration : function_definition
 	"""
+#	external_declaration : error_unit
 	construct_node(p, "external_declaration")
 
 def p_declaration(p):
@@ -28,7 +37,14 @@ def p_declaration(p):
 	declaration : declaration_specifiers ';'
 	declaration : declaration_specifiers init_declarator_list ';'
 	"""
-	construct_node(p, "declaration")	
+#	| declaration_specifiers error
+#	| declaration_specifiers init_declarator_list error
+#	last_idx = len(p) - 1
+#	if p[last_idx] != ';':
+#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
+	construct_node(p, "declaration")
+		
+
 
 def p_declaration_specifiers(p):
 	"""
@@ -114,8 +130,9 @@ def p_additive_expression(p):
 	"""
 additive_expression : multiplicative_expression
 	| additive_expression '+' multiplicative_expression
-	| additive_expression '-' multiplicative_expression
+	| additive_expression '-' multiplicative_expression	
 	"""
+
 	construct_node(p, "additive_expression")
 
 def p_shift_expression(p):
@@ -289,7 +306,13 @@ def p_struct_declaration(p):
 	"""
 struct_declaration : specifier_qualifier_list struct_declarator_list ';'
 	"""
+#	| specifier_qualifier_list struct_declarator_list error
+#	last_idx = len(p) - 1
+#	if p[last_idx] != ';':
+#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
 	construct_node(p, "struct_declaration")
+
+
 
 def p_specifier_qualifier_list(p):
 	"""
@@ -499,7 +522,13 @@ def p_expression_statement(p):
 expression_statement : ';'
 	| expression ';'
 	"""
+#	| expression error
+#	| error
+#	last_idx = len(p) - 1
+#	if p[last_idx] != ';':
+#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
 	construct_node(p, "expression_statement")	
+	
 
 def p_selection_statement(p):
 	"""
@@ -516,6 +545,9 @@ iteration_statement : WHILE '(' expression ')' statement
 	| FOR '(' expression_statement expression_statement ')' statement
 	| FOR '(' expression_statement expression_statement expression ')' statement
 	"""
+#	last_idx = len(p) - 1
+#	if p[last_idx] != ';':
+#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
 	construct_node(p, "iteration_statement")
 
 def p_jump_statement(p):
@@ -526,20 +558,31 @@ jump_statement : GOTO IDENTIFIER ';'
 	| RETURN ';'
 	| RETURN expression ';'
 	"""
+#	last_idx = len(p) - 1
+#	if p[last_idx] != ';':
+#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
 	construct_node(p, "jump_statement")
 
 def p_function_definition(p):
 	"""
 function_definition : declaration_specifiers declarator declaration_list compound_statement
 	| declaration_specifiers declarator compound_statement
-	| declarator declaration_list compound_statement
-	| declarator compound_statement
 	"""
 	construct_node(p, "function_definition")
 
 		
 def p_error(p):
-	raise TypeError("unknown text at %r, %d line, %d lexpos" % (p.value, p.lexer.lineno, p.lexer.lexpos))
+	print("Syntax error at %r, at line: %d, column: %d." % (p.value, p.lexer.lineno, ZCClex.find_column(p.lexer.lexdata, p)))
+
+	if not p:
+		print("End of file.")
+		return
+	
+	while True:
+		tok = parser.token()
+		if not tok or tok.type == '}' or tok.type == ';':
+			break	
+	parser.restart()
 	
 parser = yacc.yacc(start = 'translation_unit')
 
@@ -559,7 +602,7 @@ def printAST(p, n=0):
 #while True:
 #try:
 #	   c_file_name = raw_input('c file name: ')
-c_file_name = "test1.c"
+c_file_name = "missSEMI.c"
 c_file = open(c_file_name, "r")
    
 contents = "".join(c_file.readlines())
