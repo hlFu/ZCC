@@ -1,14 +1,26 @@
-int c, a
-int b;
+
+int b
 
 int main(int argc, char *argv[]) {
-	a = b + c;
-//	int a = 1
-//	double b = 2;
-//	double c, d, e;
+	int $a;
+	c = a + b;
+	d = a +/ b;
+	d = a -/ b;
+	d = a ^^ / b;
+	d = a *|b;
+	d = a >/ b;
+	d = a </ b;
+	d = a <=/ b;		
+	d = a <</ b;	
+	d = a ==/ b;	
+	d = a &/ b;		
+	d = a ^/ b;			
+	d = a |/ b;		
+	d = a &&| b;	
+	d = a ||| b;				
+
 	
-//	a = b + c
-//	printf("asdf\n")
-//	b = a + c;
-	
-}
+	a = b + c
+	printf("asdf\n")
+	b = a + c;
+	printf("%d\n", a);

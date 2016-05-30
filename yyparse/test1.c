@@ -61,11 +61,9 @@ int main(int argc, char *argv[]) {
 		case 'c':
 			putchar(ch);
 		case 'd':
-			goto AHA;
 		default:
 			break;
 	}
 	
-AHA: 
 	a = 1;
 }

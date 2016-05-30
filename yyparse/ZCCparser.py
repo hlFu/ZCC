@@ -4,18 +4,43 @@ import ply.lex as lex
 import ply.yacc as yacc
 import ZCClex
 from ZCClex import tokens
+from pprint import pprint
 
-def construct_node(p, parent_name):
-	p[0] = 	parent_name
-	p[0] = list(p)
+aTuple = (1,2)
 
+def handleMissingSEMI(p, parentname="", checkPair=()):
+	last_idx = len(p) - 1
+	if  (len(checkPair) == 0 or (len(checkPair) > 0 and p[checkPair[0]] == checkPair[1]) ) and p[last_idx] != ';' :
+		print("Error type: missing semicolon before %s. at line: %d, lex pos: %d in %s.\n" % (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx), parentname))
+		p[last_idx] = ';'
+		parser.errorCounter = 0
+		parser.errok()
+		return [last_idx]
+	else:
+		return []
 
-#def p_error_unit(p):
-#	"""
-#	error_unit : error
-#	"""
-#	print("error_unit")
-#	construct_node(p, "error_unit")
+def handleMissingRCURLYBRACKET(p):
+	last_idx = len(p) - 1
+	if p[last_idx] != '}':
+		print("Error type: missing right curly bracket before %s. at line: %d, lex pos: %d.\n" % (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
+		p[last_idx] = '}'
+		parser.errorCounter = 0
+		parser.errok()
+
+def handleErrorID(p, idx):
+	if len(p) > idx and type(p[idx]) == type(aTuple) and p[idx][1] == "ERRORID":
+		print("Syntax error at %r, at line: %d, lex pos: %d." % (p[idx][0], p.lineno(idx), p.lexpos(idx)))
+		print("Error type: wrong IDENTIFIER format.\n")	
+		p[idx] = p[idx][0]
+		parser.errorCounter = 0
+
+def construct_node(p, parent_name, del_list = []):
+	p[0] = 	[parent_name]
+#	print("%s's del_list: " % (parent_name))
+#	print(del_list)
+	for i in range(1, len(p)):
+		if i not in del_list:
+			p[0].append(p[i])
 	
 def p_translation_unit(p):
 	"""
@@ -26,25 +51,40 @@ def p_translation_unit(p):
 	
 def p_external_declaration(p):
 	"""
-	external_declaration : declaration
 	external_declaration : function_definition
+	external_declaration : declaration
 	"""
-#	external_declaration : error_unit
 	construct_node(p, "external_declaration")
 
 def p_declaration(p):
 	"""
-	declaration : declaration_specifiers ';'
-	declaration : declaration_specifiers init_declarator_list ';'
+	declaration : declaration_specifiers SEMICOLON
+	declaration : declaration_specifiers init_declarator_list SEMICOLON
+	| declaration_specifiers error
+	| declaration_specifiers init_declarator_list error
 	"""
-#	| declaration_specifiers error
-#	| declaration_specifiers init_declarator_list error
+
+#	del_list = []
 #	last_idx = len(p) - 1
 #	if p[last_idx] != ';':
-#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
-	construct_node(p, "declaration")
-		
+#		print("declaration")
+#		for i in range(len(p)):
+#			pprint(p[i])
+##		pprint(p[last_idx])
+#		print("Error type: Missing semicolon before %s. at line: %d, lex pos: %d.\n" % (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
+#		del_list.append(last_idx)
+#		parser.errorCounter = 0
+	del_list = handleMissingSEMI(p, "declaration")
+	construct_node(p, "declaration", del_list)
 
+#	print(p[0])
+		
+def p_constant(p):
+	"""
+	constant : NUMBER_CONSTANT
+	| CHARACTER_CONSTANT
+	"""
+	construct_node(p, "constant")
 
 def p_declaration_specifiers(p):
 	"""
@@ -61,29 +101,34 @@ def p_declaration_specifiers(p):
 def p_primary_expression(p):
 	"""
 	primary_expression : IDENTIFIER
-		| CONSTANT
+		| ERRORID
+		| constant
 		| STRING_LITERAL
-		| '(' expression ')'
+		| LBRACKET expression RBRACKET
 	"""
+	handleErrorID(p, 1)
 	construct_node(p, "primary_expression")	
 	
 def p_postfix_expression(p):
 	"""
 	postfix_expression : primary_expression
-		| postfix_expression '[' expression ']'
-		| postfix_expression '(' ')'
-		| postfix_expression '(' argument_expression_list ')'
-		| postfix_expression '.' IDENTIFIER
+		| postfix_expression LSQUAREBRACKET expression RSQUAREBRACKET
+		| postfix_expression LBRACKET RBRACKET
+		| postfix_expression LBRACKET argument_expression_list RBRACKET
+		| postfix_expression PERIOD IDENTIFIER
 		| postfix_expression PTR_OP IDENTIFIER
+		| postfix_expression PERIOD ERRORID
+		| postfix_expression PTR_OP ERRORID		
 		| postfix_expression INC_OP
 		| postfix_expression DEC_OP
 	"""
+	handleErrorID(p, 3)
 	construct_node(p, "postfix_expression")
 
 def p_argument_expression_list(p):
 	"""
 	argument_expression_list : assignment_expression
-		| argument_expression_list ',' assignment_expression
+		| argument_expression_list COMMA assignment_expression
 	"""
 	construct_node(p, "argument_expression_list")
 	
@@ -94,112 +139,185 @@ unary_expression : postfix_expression
 	| DEC_OP unary_expression
 	| unary_operator cast_expression
 	| SIZEOF unary_expression
-	| SIZEOF '(' type_name ')'
+	| SIZEOF LBRACKET type_name RBRACKET
 	"""
 	construct_node(p, "unary_expression")	
 	
 
 def p_unary_operator(p):
 	"""
-unary_operator : '&'
-	| '*'
-	| '+'
-	| '-'
-	| '~'
-	| '!'
+unary_operator : AND
+	| STAR
+	| PLUS
+	| MINUS
+	| UNOT
+	| NOT
 	"""
 	construct_node(p, "unary_operator")
 	
 def p_cast_expression(p):
 	"""	
 cast_expression : unary_expression
-	| '(' type_name ')' cast_expression
+	| LBRACKET type_name RBRACKET cast_expression
 	"""
 	construct_node(p, "cast_expression")	
 
 def p_multiplicative_expression(p):
 	"""
 multiplicative_expression : cast_expression
-	| multiplicative_expression '*' cast_expression
-	| multiplicative_expression '/' cast_expression
-	| multiplicative_expression '%' cast_expression
+	| multiplicative_expression STAR cast_expression
+	| multiplicative_expression DIVIDE cast_expression
+	| multiplicative_expression MOD cast_expression
+	| multiplicative_expression STAR error cast_expression
+	| multiplicative_expression DIVIDE error cast_expression
+	| multiplicative_expression MOD error cast_expression
 	"""
-	construct_node(p, "multiplicative_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+	construct_node(p, "multiplicative_expression", del_list)
 
 def p_additive_expression(p):
 	"""
 additive_expression : multiplicative_expression
-	| additive_expression '+' multiplicative_expression
-	| additive_expression '-' multiplicative_expression	
+	| additive_expression PLUS multiplicative_expression
+	| additive_expression MINUS multiplicative_expression
+	| additive_expression PLUS error multiplicative_expression	
+	| additive_expression MINUS error multiplicative_expression	
 	"""
-
-	construct_node(p, "additive_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+	construct_node(p, "additive_expression", del_list)
 
 def p_shift_expression(p):
 	"""
 shift_expression : additive_expression
 	| shift_expression LEFT_OP additive_expression
 	| shift_expression RIGHT_OP additive_expression
+	| shift_expression LEFT_OP error additive_expression
+	| shift_expression RIGHT_OP error additive_expression
 	"""
-	construct_node(p, "shift_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+	construct_node(p, "shift_expression", del_list)
 	
 def p_relational_expression(p):
 	"""
 relational_expression : shift_expression
-	| relational_expression '<' shift_expression
-	| relational_expression '>' shift_expression
+	| relational_expression LT shift_expression
+	| relational_expression GT shift_expression
 	| relational_expression LE_OP shift_expression
 	| relational_expression GE_OP shift_expression
+	| relational_expression LT error shift_expression
+	| relational_expression GT error shift_expression
+	| relational_expression LE_OP error shift_expression
+	| relational_expression GE_OP error shift_expression
 	"""
-	construct_node(p, "relational_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+	
+	construct_node(p, "relational_expression", del_list)
 
 def p_equality_expression(p):
 	"""
 equality_expression : relational_expression
 	| equality_expression EQ_OP relational_expression
 	| equality_expression NE_OP relational_expression
+	| equality_expression EQ_OP error relational_expression
+	| equality_expression NE_OP error relational_expression
 	"""
-	construct_node(p, "equality_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+	construct_node(p, "equality_expression", del_list)
 
 def p_and_expression(p):
 	"""
 and_expression : equality_expression
-	| and_expression '&' equality_expression
+	| and_expression AND equality_expression
+	| and_expression AND error equality_expression
 	"""
-	construct_node(p, "and_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+
+	construct_node(p, "and_expression", del_list)
 
 def p_exclusive_or_expression(p):
 	"""
 exclusive_or_expression : and_expression
-	| exclusive_or_expression '^' and_expression
+	| exclusive_or_expression XOR and_expression
+	| exclusive_or_expression XOR error and_expression
 	"""
-	construct_node(p, "exclusive_or_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+
+	construct_node(p, "exclusive_or_expression", del_list)
 	
 def p_inclusive_or_expression(p):
 	"""	
 inclusive_or_expression : exclusive_or_expression
-	| inclusive_or_expression '|' exclusive_or_expression
+	| inclusive_or_expression OR exclusive_or_expression
+	| inclusive_or_expression OR error exclusive_or_expression
 	"""
-	construct_node(p, "inclusive_or_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+
+	construct_node(p, "inclusive_or_expression", del_list)
 
 def p_logical_and_expression(p):
 	"""
 logical_and_expression : inclusive_or_expression
 	| logical_and_expression AND_OP inclusive_or_expression
+	| logical_and_expression AND_OP error inclusive_or_expression
 	"""
-	construct_node(p, "logical_and_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+
+	construct_node(p, "logical_and_expression", del_list)
 	
 def p_logical_or_expression(p):
 	"""
 logical_or_expression : logical_and_expression
 	| logical_or_expression OR_OP logical_and_expression
+	| logical_or_expression OR_OP error logical_and_expression
 	"""
-	construct_node(p, "logical_or_expression")
+	del_list = []
+	if len(p) == 5:
+		print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+		del_list.append(3)
+		parser.errorCounter = 0
+		
+	construct_node(p, "logical_or_expression", del_list)
 
 def p_conditional_expression(p):
 	"""
 conditional_expression : logical_or_expression
-	| logical_or_expression '?' expression ':' conditional_expression
+	| logical_or_expression QUESTIONMARK expression COLON conditional_expression
 	"""
 	construct_node(p, "cnditional_expression")
 
@@ -212,7 +330,7 @@ assignment_expression : conditional_expression
 
 def p_assignment_operator(p):
 	"""
-assignment_operator : '='
+assignment_operator : ASSIGN
 	| MUL_ASSIGN
 	| DIV_ASSIGN
 	| MOD_ASSIGN
@@ -229,7 +347,7 @@ assignment_operator : '='
 def p_expression(p):
 	"""
 expression : assignment_expression
-	| expression ',' assignment_expression
+	| expression COMMA assignment_expression
 	"""
 	construct_node(p, "expression")
 
@@ -242,14 +360,14 @@ constant_expression : conditional_expression
 def p_init_declarator_list(p):
 	"""
 init_declarator_list : init_declarator
-	| init_declarator_list ',' init_declarator
+	| init_declarator_list COMMA init_declarator
 	"""
 	construct_node(p, "init_declarator_list")
 
 def p_init_declarator(p):
 	"""
 init_declarator : declarator
-	| declarator '=' initializer
+	| declarator ASSIGN initializer
 	"""
 	construct_node(p, "init_declarator")
 
@@ -258,8 +376,6 @@ def p_storage_class_specifier(p):
 storage_class_specifier : TYPEDEF
 	| EXTERN
 	| STATIC
-	| AUTO
-	| REGISTER
 	"""
 	construct_node(p, "storage_class_specifier")
 
@@ -282,10 +398,12 @@ type_specifier : VOID
 
 def p_struct_or_union_specifier(p):
 	"""
-struct_or_union_specifier : struct_or_union IDENTIFIER '{' struct_declaration_list '}'
-	| struct_or_union '{' struct_declaration_list '}'
-	| struct_or_union IDENTIFIER
+struct_or_union_specifier : struct_or_union IDENTIFIER LCURLYBRACKET struct_declaration_list RCURLYBRACKET
+	| struct_or_union ERRORID LCURLYBRACKET struct_declaration_list RCURLYBRACKET
+	| struct_or_union LCURLYBRACKET struct_declaration_list RCURLYBRACKET
+	| struct_or_union ERRORID
 	"""
+	handleErrorID(p, 2)
 	construct_node(p, "struct_or_union_specifier")
 
 def p_struct_or_union(p):
@@ -304,14 +422,17 @@ struct_declaration_list : struct_declaration
 
 def p_struct_declaration(p):
 	"""
-struct_declaration : specifier_qualifier_list struct_declarator_list ';'
+struct_declaration : specifier_qualifier_list struct_declarator_list SEMICOLON
+	| specifier_qualifier_list struct_declarator_list error
 	"""
-#	| specifier_qualifier_list struct_declarator_list error
-#	last_idx = len(p) - 1
-#	if p[last_idx] != ';':
-#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
-	construct_node(p, "struct_declaration")
-
+	del_list = []
+	last_idx = len(p) - 1
+	if p[last_idx] != ';':
+		print("struct_declaration")
+		del_list.append(last_idx)
+		parser.errorCounter = 0
+	construct_node(p, "struct_declaration", del_list)
+#	print(p[0])
 
 
 def p_specifier_qualifier_list(p):
@@ -326,44 +447,49 @@ specifier_qualifier_list : type_specifier specifier_qualifier_list
 def p_struct_declarator_list(p):
 	"""
 struct_declarator_list : struct_declarator
-	| struct_declarator_list ',' struct_declarator
+	| struct_declarator_list COMMA struct_declarator
 	"""
 	construct_node(p, "struct_declarator_list")
 
 def p_struct_declarator(p):
 	"""
 struct_declarator : declarator
-	| ':' constant_expression
-	| declarator ':' constant_expression
+	| COLON constant_expression
+	| declarator COLON constant_expression
 	"""
 	construct_node(p, "struct_declarator")
 
 def p_enum_specifier(p):
 	"""
-enum_specifier : ENUM '{' enumerator_list '}'
-	| ENUM IDENTIFIER '{' enumerator_list '}'
+enum_specifier : ENUM LCURLYBRACKET enumerator_list RCURLYBRACKET
+	| ENUM IDENTIFIER LCURLYBRACKET enumerator_list RCURLYBRACKET
 	| ENUM IDENTIFIER
+	| ENUM ERRORID LCURLYBRACKET enumerator_list RCURLYBRACKET
+	| ENUM ERRORID
 	"""
+	handleErrorID(p, 2)
 	construct_node(p, "enum_specifier")
 
 def p_enumerator_list(p):
 	"""
 enumerator_list : enumerator
-	| enumerator_list ',' enumerator
+	| enumerator_list COMMA enumerator
 	"""
 	construct_node(p, "enumerator_list")
 
 def p_enumerator(p):
 	"""
 enumerator : IDENTIFIER
-	| IDENTIFIER '=' constant_expression
+	| IDENTIFIER ASSIGN constant_expression
+	| ERRORID
+	| ERRORID ASSIGN constant_expression
 	"""
+	handleErrorID(p, 1)
 	construct_node(p, "enumerator")
 
 def p_type_qualifier(p):
 	"""
 type_qualifier : CONST
-	| VOLATILE
 	"""
 	construct_node(p, "type_qualifier")
 
@@ -376,22 +502,23 @@ declarator : pointer direct_declarator
 
 def p_direct_declarator(p):
 	"""
-direct_declarator : IDENTIFIER
-	| '(' declarator ')'
-	| direct_declarator '[' constant_expression ']'
-	| direct_declarator '[' ']'
-	| direct_declarator '(' parameter_type_list ')'
-	| direct_declarator '(' identifier_list ')'
-	| direct_declarator '(' ')'
+direct_declarator : direct_declarator LSQUAREBRACKET constant_expression RSQUAREBRACKET
+	| direct_declarator LSQUAREBRACKET RSQUAREBRACKET
+	| direct_declarator LBRACKET parameter_type_list RBRACKET
+	| direct_declarator LBRACKET RBRACKET
+	| IDENTIFIER
+	| ERRORID
+	| LBRACKET declarator RBRACKET
 	"""
+	handleErrorID(p, 1)
 	construct_node(p, "direct_declarator")
 
 def p_pointer(p):
 	"""
-pointer : '*'
-	| '*' type_qualifier_list
-	| '*' pointer
-	| '*' type_qualifier_list pointer
+pointer : STAR
+	| STAR type_qualifier_list
+	| STAR pointer
+	| STAR type_qualifier_list pointer
 	"""
 	construct_node(p, "pointer")
 
@@ -405,14 +532,14 @@ type_qualifier_list : type_qualifier
 def p_parameter_type_list(p):
 	"""
 parameter_type_list : parameter_list
-	| parameter_list ',' ELLIPSIS
+	| parameter_list COMMA ELLIPSIS
 	"""
 	construct_node(p, "parameter_type_list")
 	
 def p_parameter_list(p):
 	"""
 parameter_list : parameter_declaration
-	| parameter_list ',' parameter_declaration
+	| parameter_list COMMA parameter_declaration
 	"""
 	construct_node(p, "parameter_list")
 
@@ -424,12 +551,6 @@ parameter_declaration : declaration_specifiers declarator
 	"""
 	construct_node(p, "parameter_declaration")
 
-def p_identifier_list(p):
-	"""
-identifier_list : IDENTIFIER
-	| identifier_list ',' IDENTIFIER
-	"""
-	construct_node(p, "identifier_list")
 
 def p_type_name(p):
 	"""
@@ -448,30 +569,30 @@ abstract_declarator : pointer
 
 def p_direct_abstract_declarator(p):
 	"""
-direct_abstract_declarator : '(' abstract_declarator ')'
-	| '[' ']'
-	| '[' constant_expression ']'
-	| direct_abstract_declarator '[' ']'
-	| direct_abstract_declarator '[' constant_expression ']'
-	| '(' ')'
-	| '(' parameter_type_list ')'
-	| direct_abstract_declarator '(' ')'
-	| direct_abstract_declarator '(' parameter_type_list ')'
+direct_abstract_declarator : LBRACKET abstract_declarator RBRACKET
+	| LSQUAREBRACKET RSQUAREBRACKET
+	| LSQUAREBRACKET constant_expression RSQUAREBRACKET
+	| direct_abstract_declarator LSQUAREBRACKET RSQUAREBRACKET
+	| direct_abstract_declarator LSQUAREBRACKET constant_expression RSQUAREBRACKET
+	| LBRACKET RBRACKET
+	| LBRACKET parameter_type_list RBRACKET
+	| direct_abstract_declarator LBRACKET RBRACKET
+	| direct_abstract_declarator LBRACKET parameter_type_list RBRACKET
 	"""
 	construct_node(p, "direct_abstract_declarator")
 
 def p_initializer(p):
 	"""
 initializer : assignment_expression
-	| '{' initializer_list '}'
-	| '{' initializer_list ',' '}'
+	| LCURLYBRACKET initializer_list RCURLYBRACKET
+	| LCURLYBRACKET initializer_list COMMA RCURLYBRACKET
 	"""
 	construct_node(p, "initializer")
 
 def p_initiazer_list(p):
 	"""
 initializer_list : initializer
-	| initializer_list ',' initializer
+	| initializer_list COMMA initializer
 	"""
 	construct_node(p, "initializer_list")
 
@@ -488,19 +609,26 @@ statement : labeled_statement
 
 def p_labeled_statement(p):
 	"""
-labeled_statement : IDENTIFIER ':' statement
-	| CASE constant_expression ':' statement
-	| DEFAULT ':' statement
+labeled_statement : CASE constant_expression COLON statement
+	| DEFAULT COLON statement
 	"""
+#	| IDENTIFIER COLON statement
+#	| ERRORID COLON statement
+#	handleErrorID(p, 1)
 	construct_node(p, "labeled_statement")
-
+		
 def p_compound_statement(p):
 	"""
-compound_statement : '{' '}'
-	| '{' statement_list '}'
-	| '{' declaration_list '}'
-	| '{' declaration_list statement_list '}'
+compound_statement : LCURLYBRACKET RCURLYBRACKET
+	| LCURLYBRACKET statement_list RCURLYBRACKET
+	| LCURLYBRACKET declaration_list RCURLYBRACKET
+	| LCURLYBRACKET declaration_list statement_list RCURLYBRACKET
+	| LCURLYBRACKET error
+	| LCURLYBRACKET statement_list error
+	| LCURLYBRACKET declaration_list error
+	| LCURLYBRACKET declaration_list statement_list error
 	"""
+	handleMissingRCURLYBRACKET(p)
 	construct_node(p, "compound_statement")
 
 def p_declaration_list(p):
@@ -519,73 +647,108 @@ statement_list : statement
 
 def p_expression_statement(p):
 	"""
-expression_statement : ';'
-	| expression ';'
+expression_statement : SEMICOLON
+	| expression SEMICOLON
+	| expression error
 	"""
-#	| expression error
-#	| error
+
+#	del_list = []
 #	last_idx = len(p) - 1
 #	if p[last_idx] != ';':
-#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
-	construct_node(p, "expression_statement")	
-	
+#		print("expression_statement")
+#		print("Error type: Missing semicolon before %s. at line: %d, lex pos: %d.\n" % (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
+#		del_list.append(last_idx)
+#		parser.errorCounter = 0
+	del_list = handleMissingSEMI(p, "expression_statement")
+	construct_node(p, "expression_statement", del_list)	
+
 
 def p_selection_statement(p):
 	"""
-selection_statement : IF '(' expression ')' statement
-	| IF '(' expression ')' statement ELSE statement
-	| SWITCH '(' expression ')' statement
+selection_statement : IF LBRACKET expression RBRACKET statement
+	| IF LBRACKET expression RBRACKET statement ELSE statement
+	| SWITCH LBRACKET expression RBRACKET statement
 	"""
 	construct_node(p, "selection_statement")
 	
 def p_iteration_statement(p):
 	"""
-iteration_statement : WHILE '(' expression ')' statement
-	| DO statement WHILE '(' expression ')' ';'
-	| FOR '(' expression_statement expression_statement ')' statement
-	| FOR '(' expression_statement expression_statement expression ')' statement
+iteration_statement : WHILE LBRACKET expression RBRACKET statement
+	| DO statement WHILE LBRACKET expression RBRACKET SEMICOLON
+	| DO statement WHILE LBRACKET expression RBRACKET error
+	| FOR LBRACKET expression_statement expression_statement RBRACKET statement
+	| FOR LBRACKET expression_statement expression_statement expression RBRACKET statement
 	"""
+#	del_list = []
 #	last_idx = len(p) - 1
-#	if p[last_idx] != ';':
-#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
-	construct_node(p, "iteration_statement")
+#	if p[1] == 'do' and p[last_idx] != ';':
+#		print("iteration statement")
+#		print("Error type: Missing semicolon before %s. at line: %d, lex pos: %d.\n" % (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
+#		del_list.append(last_idx)
+#		parser.errorCounter = 0
+	del_list = handleMissingSEMI(p, "iteration_statement", (1, 'do'))
+	construct_node(p, "iteration_statement", del_list)
+
+#	print(p[0])
 
 def p_jump_statement(p):
 	"""
-jump_statement : GOTO IDENTIFIER ';'
-	| CONTINUE ';'
-	| BREAK ';'
-	| RETURN ';'
-	| RETURN expression ';'
+jump_statement : CONTINUE SEMICOLON
+	| BREAK SEMICOLON
+	| RETURN SEMICOLON
+	| RETURN expression SEMICOLON
+	| CONTINUE error
+	| BREAK error
+	| RETURN error
+	| RETURN expression error
 	"""
+#	del_list = []
 #	last_idx = len(p) - 1
 #	if p[last_idx] != ';':
-#		print("Error type: Missing semicolon after %s." % (p[last_idx]))
-	construct_node(p, "jump_statement")
-
+#		print("jump statement")
+#		print("Error type: Missing semicolon before %s. at line: %d, lex pos: %d.\n" % (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
+#		del_list.append(last_idx)		
+#		parser.errorCounter = 0
+	del_list = handleMissingSEMI(p, "jump_statement")
+	construct_node(p, "jump_statement", del_list)
+#	print(p[0])
+	
 def p_function_definition(p):
 	"""
-function_definition : declaration_specifiers declarator declaration_list compound_statement
-	| declaration_specifiers declarator compound_statement
+function_definition : declaration_specifiers declarator compound_statement
 	"""
 	construct_node(p, "function_definition")
 
 		
 def p_error(p):
-	print("Syntax error at %r, at line: %d, column: %d." % (p.value, p.lexer.lineno, ZCClex.find_column(p.lexer.lexdata, p)))
-
 	if not p:
 		print("End of file.")
 		return
+		
+	if p.type == 'EOF':
+		if ZCClex.lexer.lexer.curlyBalance > 0:
+			parser.errok()
+			return lex.LexToken('RCURCLYBRACKET', '}', p.lexer.lineno, p.lexer.lexpos)
+		else:
+			return
+			
+	print("Syntax error at %r, at line: %d, column: %d." % (p.value, p.lexer.lineno, ZCClex.find_column(p.lexer.lexdata, p)))
 	
-	while True:
-		tok = parser.token()
-		if not tok or tok.type == '}' or tok.type == ';':
-			break	
-	parser.restart()
+	if parser.errorCounter > 0:	
+		print("In panic mode\n")
+		while True:
+			tok = parser.token()
+			if not tok or tok.type == SEMICOLON or tok.type == RCURLYBRACKET:
+				break	
+		parser.restart()
+	else:
+		parser.errorCounter += 1
+	return p
+
 	
 parser = yacc.yacc(start = 'translation_unit')
-
+parser.errorCounter = 0
+#pprint(parser.__dict__)
 
 def printAST(p, n=0):
 	if p is not None:
@@ -602,12 +765,12 @@ def printAST(p, n=0):
 #while True:
 #try:
 #	   c_file_name = raw_input('c file name: ')
-c_file_name = "missSEMI.c"
+c_file_name = "test2.c"
 c_file = open(c_file_name, "r")
    
 contents = "".join(c_file.readlines())
 #except EOFError:
 #   break
 #if not contents: continue
-result = parser.parse(contents)
+result = parser.parse(contents, lexer = ZCClex.lexer)
 printAST(result)
