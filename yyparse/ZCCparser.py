@@ -41,7 +41,13 @@ def construct_node(p, parent_name, del_list = []):
 	for i in range(1, len(p)):
 		if i not in del_list:
 			p[0].append(p[i])
-	
+
+def p_outer_translation_unit(p):
+	"""
+	outer_translation_unit : translation_unit EOF
+	"""
+	construct_node(p, "outer_translation_unit")
+		
 def p_translation_unit(p):
 	"""
 	translation_unit : external_declaration
@@ -746,7 +752,7 @@ def p_error(p):
 	return p
 
 	
-parser = yacc.yacc(start = 'translation_unit')
+parser = yacc.yacc(start = 'outer_translation_unit')
 parser.errorCounter = 0
 #pprint(parser.__dict__)
 
@@ -765,12 +771,13 @@ def printAST(p, n=0):
 #while True:
 #try:
 #	   c_file_name = raw_input('c file name: ')
-c_file_name = "test2.c"
+c_file_name = "test1.c"
 c_file = open(c_file_name, "r")
    
 contents = "".join(c_file.readlines())
 #except EOFError:
 #   break
 #if not contents: continue
+#result = parser.parse(contents, lexer = ZCClex.orig_lexer)
 result = parser.parse(contents, lexer = ZCClex.lexer)
 printAST(result)

@@ -164,6 +164,7 @@ tokens = (
 	"ERRORID",
 	"NUMBER_CONSTANT",
 	"CHARACTER_CONSTANT",
+	"EOF"
 )
 
 def t_STRING_LITERAL(t):
@@ -337,7 +338,7 @@ def test_lex():
 #data = raw_input()
 
 #	c_file_name = raw_input('c file name: ')
-	c_file_name = "testChar.c"
+	c_file_name = "test1.c"
 	c_file = open(c_file_name, "r")
 	contents = "".join(c_file.readlines())
 
