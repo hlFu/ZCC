@@ -751,14 +751,11 @@ def p_error(p):
 		parser.errorCounter += 1
 	return p
 
-	
-parser = yacc.yacc(start = 'outer_translation_unit')
-parser.errorCounter = 0
-#pprint(parser.__dict__)
+
 
 def printAST(p, n=0):
 	if p is not None:
-		print('  ' * n, end='')
+		print(' |' * n, end='-')
 		if type(p) is list:
 			print(p[0])
 			for node in p[1:]:
@@ -767,17 +764,22 @@ def printAST(p, n=0):
 			print(p)
 
 
-#if __name__ == "__main__":
-#while True:
-#try:
-#	   c_file_name = raw_input('c file name: ')
-c_file_name = "test1.c"
-c_file = open(c_file_name, "r")
-   
-contents = "".join(c_file.readlines())
-#except EOFError:
-#   break
-#if not contents: continue
-#result = parser.parse(contents, lexer = ZCClex.orig_lexer)
-result = parser.parse(contents, lexer = ZCClex.lexer)
-printAST(result)
+parser = yacc.yacc(start = 'outer_translation_unit')
+parser.errorCounter = 0
+
+
+if __name__ == "__main__":
+	#pprint(parser.__dict__)
+	#while True:
+	#try:
+	#	   c_file_name = raw_input('c file name: ')
+	c_file_name = "test1.c"
+	c_file = open(c_file_name, "r")
+
+	contents = "".join(c_file.readlines())
+	#except EOFError:
+	#   break
+	#if not contents: continue
+	#result = parser.parse(contents, lexer = ZCClex.orig_lexer)
+	result = parser.parse(contents, lexer = ZCClex.lexer)
+	printAST(result)

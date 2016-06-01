@@ -42,6 +42,8 @@ ZJU standard C Compiler
 
 * typedef 的语法树可能有点问题
 
+* 李学长：根据标准typedef就是这个样子，不过需要我这里在进行一些检查，你们对这个typedef的语法树有疑问来问我。
+
 typedef struct{
     int a;
     double c;
