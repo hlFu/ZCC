@@ -53,7 +53,8 @@ def p_outer_translation_unit(p):
     """
     outer_translation_unit : translation_unit EOF
     """
-    construct_node(p, "outer_translation_unit")
+    p[0] = p[1]
+    # construct_node(p, "outer_translation_unit")
 
 
 def p_translation_unit(p):
@@ -76,7 +77,8 @@ def p_external_declaration(p):
     external_declaration : function_definition
     | declaration
     """
-    construct_node(p, "external_declaration")
+    p[0] = p[1]
+    # construct_node(p, "external_declaration")
 
 
 def p_declaration(p):
@@ -131,7 +133,10 @@ def p_primary_expression(p):
         | LBRACKET expression RBRACKET
     """
     handleErrorID(p, 1)
-    construct_node(p, "primary_expression")
+    if len(p) == 4:
+        p[0] = p[2]
+    else:
+        construct_node(p, "primary_expression")
 
 
 def p_postfix_expression(p):
@@ -148,7 +153,10 @@ def p_postfix_expression(p):
         | postfix_expression DEC_OP
     """
     handleErrorID(p, 3)
-    construct_node(p, "postfix_expression")
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "postfix_expression")
 
 
 def p_argument_expression_list(p):
@@ -156,7 +164,11 @@ def p_argument_expression_list(p):
     argument_expression_list : assignment_expression
         | argument_expression_list COMMA assignment_expression
     """
-    construct_node(p, "argument_expression_list")
+    if len(p) == 2:
+        construct_node(p, "argument_expression_list")
+    else:
+        p[1].append(p[2:])
+        p[0] = p[1]
 
 
 def p_unary_expression(p):
@@ -168,7 +180,10 @@ unary_expression : postfix_expression
     | SIZEOF unary_expression
     | SIZEOF LBRACKET type_name RBRACKET
     """
-    construct_node(p, "unary_expression")
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "unary_expression")
 
 
 def p_unary_operator(p):
@@ -188,7 +203,10 @@ def p_cast_expression(p):
 cast_expression : unary_expression
     | LBRACKET type_name RBRACKET cast_expression
     """
-    construct_node(p, "cast_expression")
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "cast_expression")
     # printAST(p[0], 0)
 
 
@@ -207,7 +225,10 @@ multiplicative_expression : cast_expression
         print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
-    construct_node(p, "multiplicative_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "multiplicative_expression", del_list)
 
 
 def p_additive_expression(p):
@@ -223,7 +244,10 @@ additive_expression : multiplicative_expression
         print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
-    construct_node(p, "additive_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "additive_expression", del_list)
 
 
 def p_shift_expression(p):
@@ -239,7 +263,10 @@ shift_expression : additive_expression
         print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
-    construct_node(p, "shift_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "shift_expression", del_list)
 
 
 def p_relational_expression(p):
@@ -260,7 +287,10 @@ relational_expression : shift_expression
         del_list.append(3)
         parser.errorCounter = 0
 
-    construct_node(p, "relational_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "relational_expression", del_list)
 
 
 def p_equality_expression(p):
@@ -276,7 +306,10 @@ equality_expression : relational_expression
         print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
-    construct_node(p, "equality_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "equality_expression", del_list)
 
 
 def p_and_expression(p):
@@ -291,7 +324,10 @@ and_expression : equality_expression
         del_list.append(3)
         parser.errorCounter = 0
 
-    construct_node(p, "and_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "and_expression", del_list)
 
 
 def p_exclusive_or_expression(p):
@@ -306,7 +342,10 @@ exclusive_or_expression : and_expression
         del_list.append(3)
         parser.errorCounter = 0
 
-    construct_node(p, "exclusive_or_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "exclusive_or_expression", del_list)
 
 
 def p_inclusive_or_expression(p):
@@ -321,7 +360,10 @@ inclusive_or_expression : exclusive_or_expression
         del_list.append(3)
         parser.errorCounter = 0
 
-    construct_node(p, "inclusive_or_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "inclusive_or_expression", del_list)
 
 
 def p_logical_and_expression(p):
@@ -336,7 +378,10 @@ logical_and_expression : inclusive_or_expression
         del_list.append(3)
         parser.errorCounter = 0
 
-    construct_node(p, "logical_and_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "logical_and_expression", del_list)
 
 
 def p_logical_or_expression(p):
@@ -351,7 +396,10 @@ logical_or_expression : logical_and_expression
         del_list.append(3)
         parser.errorCounter = 0
 
-    construct_node(p, "logical_or_expression", del_list)
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "logical_or_expression", del_list)
 
 
 def p_conditional_expression(p):
@@ -359,7 +407,10 @@ def p_conditional_expression(p):
 conditional_expression : logical_or_expression
     | logical_or_expression QUESTIONMARK expression COLON conditional_expression
     """
-    construct_node(p, "cnditional_expression")
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "cnditional_expression")
 
 
 def p_assignment_expression(p):
@@ -367,7 +418,10 @@ def p_assignment_expression(p):
 assignment_expression : conditional_expression
     | unary_expression assignment_operator assignment_expression
     """
-    construct_node(p, "assignment_expression")
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "assignment_expression")
 
 
 def p_assignment_operator(p):
@@ -392,7 +446,18 @@ def p_expression(p):
 expression : assignment_expression
     | expression COMMA assignment_expression
     """
-    construct_node(p, "expression")
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        construct_node(p, "expression")
+    # if len(p) == 2:
+    #     construct_node(p, "expression")
+    # elif len(p) == 4:
+    #     # printAST(p[1])
+    #     p[1].append(p[3])
+    #     p[0] = p[1]
+    # else:
+    #     raise Exception("expression just has 2 or 4 children")
 
 
 def p_constant_expression(p):
@@ -407,7 +472,11 @@ def p_init_declarator_list(p):
 init_declarator_list : init_declarator
     | init_declarator_list COMMA init_declarator
     """
-    construct_node(p, "init_declarator_list")
+    if len(p) == 2:
+        construct_node(p, "init_declarator_list")
+    else:
+        p[1].append(p[2:])
+        p[0] = p[1]
 
 
 def p_init_declarator(p):
@@ -478,7 +547,11 @@ def p_struct_declaration_list(p):
     """struct_declaration_list : struct_declaration
     | struct_declaration_list struct_declaration
     """
-    construct_node(p, "struct_declaration_list")
+    if len(p) == 2:
+        construct_node(p, "struct_declaration_list")
+    elif len(p) == 3:
+        p[1].append(p[2])
+        p[0] = p[1]
 
 
 def p_struct_declaration(p):
@@ -508,19 +581,23 @@ specifier_qualifier_list : type_specifier
 
 def p_struct_declarator_list(p):
     """
-struct_declarator_list : struct_declarator
-    | struct_declarator_list COMMA struct_declarator
+struct_declarator_list : declarator
+    | struct_declarator_list COMMA declarator
     """
-    construct_node(p, "struct_declarator_list")
+    if len(p) == 2:
+        construct_node(p, "struct_declarator_list")
+    else:
+        p[1].append(p[2:])
+        p[0] = p[1]
 
 
-def p_struct_declarator(p):
-    """
-struct_declarator : declarator
-    | COLON constant_expression
-    | declarator COLON constant_expression
-    """
-    construct_node(p, "struct_declarator")
+# def p_struct_declarator(p):
+#     """
+# struct_declarator : declarator
+#     | COLON constant_expression
+#     | declarator COLON constant_expression
+#     """
+#     construct_node(p, "struct_declarator")
 
 
 def p_enum_specifier(p):
@@ -540,7 +617,11 @@ def p_enumerator_list(p):
 enumerator_list : enumerator
     | enumerator_list COMMA enumerator
     """
-    construct_node(p, "enumerator_list")
+    if len(p) == 2:
+        construct_node(p, "enumerator_list")
+    else:
+        p[1].append(p[2:])
+        p[0] = p[1]
 
 
 def p_enumerator(p):
@@ -614,7 +695,11 @@ def p_parameter_list(p):
 parameter_list : parameter_declaration
     | parameter_list COMMA parameter_declaration
     """
-    construct_node(p, "parameter_list")
+    if len(p) == 2:
+        construct_node(p, "parameter_list")
+    else:
+        p[1].append(p[2:])
+        p[0] = p[1]
 
 
 def p_parameter_declaration(p):
@@ -672,7 +757,11 @@ def p_initiazer_list(p):
 initializer_list : initializer
     | initializer_list COMMA initializer
     """
-    construct_node(p, "initializer_list")
+    if len(p) == 2:
+        construct_node(p, "initializer_list")
+    else:
+        p[1].append(p[2:])
+        p[0] = p[1]
 
 
 def p_statement(p):
@@ -718,7 +807,11 @@ def p_declaration_list(p):
 declaration_list : declaration
     | declaration_list declaration
     """
-    construct_node(p, "declaration_list")
+    if len(p) == 2:
+        construct_node(p, "declaration_list")
+    elif len(p) == 3:
+        p[1].append(p[2])
+        p[0] = p[1]
 
 
 def p_statement_list(p):
@@ -726,7 +819,11 @@ def p_statement_list(p):
 statement_list : statement
     | statement_list statement
     """
-    construct_node(p, "statement_list")
+    if len(p) == 2:
+        construct_node(p, "statement_list")
+    if len(p) == 3:
+        p[1].append(p[2])
+        p[0] = p[1]
 
 
 def p_expression_statement(p):

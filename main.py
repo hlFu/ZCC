@@ -3,8 +3,10 @@ from yyparse.ZCCparser import parser, printAST
 from yyparse.ZCClex import lexer as ZCClexer
 
 if __name__ == '__main__':
-    # with open("symbol/test.c") as f:
-    with open("symbol/preprocessed.c") as f:
+    with open("symbol/test.c") as f:
+    # with open("yyparse/missSEMI.c") as f:
+    # with open("yyparse/missRightCurly.c") as f:
+    # with open("symbol/preprocessed.c") as f:
 
         codes = f.read()
         pt = parser.parse(codes, lexer=ZCClexer)

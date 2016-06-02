@@ -261,16 +261,16 @@ of the comp.lang.c FAQ, can be ftp'ed from ftp.uu.net, file
 	;
 
 <a name="struct-declarator-list">struct_declarator_list</a>
-	: <a href="#struct-declarator">struct_declarator</a>
-	| struct_declarator_list ',' <a href="#struct-declarator">struct_declarator</a>
+	: <a href="#declarator">declarator</a>
+	| struct_declarator_list ',' <a href="#declarator">declarator</a>
 	;
-
+<!--
 <a name="struct-declarator">struct_declarator</a>
 	: <a href="#declarator">declarator</a>
 	| ':' <a href="#constant-expression">constant_expression</a>
 	| <a href="#declarator">declarator</a> ':' <a href="#constant-expression">constant_expression</a>
 	;
-
+-->
 <a name="enum-specifier">enum_specifier</a>
 	: <a href="ANSI-C-grammar-l.html#ENUM">ENUM</a> '{' <a href="#enumerator-list">enumerator_list</a> '}'
 	| <a href="ANSI-C-grammar-l.html#ENUM">ENUM</a> <a href="ANSI-C-grammar-l.html#check-type">IDENTIFIER</a> '{' <a href="#enumerator-list">enumerator_list</a> '}'
