@@ -13,7 +13,7 @@ def handleMissingSEMI(p, parentname="", checkPair=()):
     last_idx = len(p) - 1
     if (len(checkPair) == 0 or (len(checkPair) > 0 and p[checkPair[0]] == checkPair[1])) and p[last_idx] != ';':
         print("Error type: missing semicolon before %s. at line: %d, lex pos: %d in %s.\n" % (
-        p[last_idx], p.lineno(last_idx), p.lexpos(last_idx), parentname))
+            p[last_idx], p.lineno(last_idx), p.lexpos(last_idx), parentname))
         p[last_idx] = ';'
         parser.errorCounter = 0
         parser.errok()
@@ -26,7 +26,7 @@ def handleMissingRCURLYBRACKET(p):
     last_idx = len(p) - 1
     if p[last_idx] != '}':
         print("Error type: missing right curly bracket before %s. at line: %d, lex pos: %d.\n" % (
-        p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
+            p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
         p[last_idx] = '}'
         parser.errorCounter = 0
         parser.errok()
@@ -61,7 +61,14 @@ def p_translation_unit(p):
     translation_unit : external_declaration
     | translation_unit external_declaration
     """
-    construct_node(p, "translation_unit")
+    if len(p) == 2:
+        construct_node(p, "translation_unit")
+    elif len(p) == 3:
+        # printAST(p[1])
+        p[1].append(p[2])
+        p[0] = p[1]
+    else:
+        raise Exception("translation_unit just has two children")
 
 
 def p_external_declaration(p):
@@ -95,14 +102,24 @@ def p_constant(p):
 
 def p_declaration_specifiers(p):
     """
-    declaration_specifiers : storage_class_specifier
-    | storage_class_specifier declaration_specifiers
-    | type_specifier
-    | type_specifier declaration_specifiers
-    | type_qualifier
-    | type_qualifier declaration_specifiers
+    declaration_specifiers : type_specifier
+    | type_specifier type_qualifier
+    | type_qualifier type_specifier
+    | storage_class_specifier type_specifier
+    | storage_class_specifier type_specifier type_qualifier
+    | storage_class_specifier type_qualifier type_specifier
     """
+    # """
+    # declaration_specifiers : storage_class_specifier
+    # | storage_class_specifier declaration_specifiers
+    # | type_specifier
+    # | type_specifier declaration_specifiers
+    # | type_qualifier
+    # | type_qualifier declaration_specifiers
+    # """
     construct_node(p, "declaration_specifiers")
+    # printAST(p[0], 0)
+    # pass
 
 
 def p_primary_expression(p):
@@ -172,6 +189,7 @@ cast_expression : unary_expression
     | LBRACKET type_name RBRACKET cast_expression
     """
     construct_node(p, "cast_expression")
+    # printAST(p[0], 0)
 
 
 def p_multiplicative_expression(p):
@@ -409,19 +427,28 @@ storage_class_specifier : TYPEDEF
     construct_node(p, "storage_class_specifier")
 
 
-def p_type_specifier(p):
+def p_integer_type(p):
     """
-type_specifier : VOID
-    | CHAR
+    integer_type : CHAR
     | SHORT
     | INT
     | LONG
+    | UNSIGNED integer_type
+    | SIGNED integer_type
+    | SHORT integer_type
+    | LONG integer_type
+    """
+    construct_node(p, "integer_type")
+
+
+def p_type_specifier(p):
+    """type_specifier : VOID
+    | integer_type
     | FLOAT
     | DOUBLE
-    | SIGNED
-    | UNSIGNED
     | struct_or_union_specifier
     | enum_specifier
+    | IDENTIFIER
     """
     #    | TYPE_NAME
     construct_node(p, "type_specifier")
@@ -448,16 +475,14 @@ struct_or_union : STRUCT
 
 
 def p_struct_declaration_list(p):
-    """
-struct_declaration_list : struct_declaration
+    """struct_declaration_list : struct_declaration
     | struct_declaration_list struct_declaration
     """
     construct_node(p, "struct_declaration_list")
 
 
 def p_struct_declaration(p):
-    """
-struct_declaration : specifier_qualifier_list struct_declarator_list SEMICOLON
+    """struct_declaration : specifier_qualifier_list struct_declarator_list SEMICOLON
     | specifier_qualifier_list struct_declarator_list error
     """
     del_list = []
@@ -474,10 +499,9 @@ struct_declaration : specifier_qualifier_list struct_declarator_list SEMICOLON
 
 def p_specifier_qualifier_list(p):
     """
-specifier_qualifier_list : type_specifier specifier_qualifier_list
-    | type_specifier
-    | type_qualifier specifier_qualifier_list
-    | type_qualifier
+specifier_qualifier_list : type_specifier
+    | type_specifier type_qualifier
+    | type_qualifier type_specifier
     """
     construct_node(p, "specifier_qualifier_list")
 
@@ -797,7 +821,7 @@ def p_error(p):
             return
 
     print("Syntax error at %r, at line: %d, column: %d." % (
-    p.value, p.lexer.lineno, ZCClex.find_column(p.lexer.lexdata, p)))
+        p.value, p.lexer.lineno, ZCClex.find_column(p.lexer.lexdata, p)))
 
     if parser.errorCounter > 0:
         print("In panic mode\n")
@@ -814,7 +838,8 @@ def p_error(p):
 def printAST(p, n=0):
     if p is not None:
         print(' |' * n, end='-')
-        if type(p) is list:
+        # if type(p) is list:
+        if isinstance(p, list):
             print(p[0])
             for node in p[1:]:
                 printAST(node, n + 1)

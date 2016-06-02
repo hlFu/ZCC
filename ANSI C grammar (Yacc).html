@@ -189,13 +189,13 @@ of the comp.lang.c FAQ, can be ftp'ed from ftp.uu.net, file
 	| <a href="#declaration-specifiers">declaration_specifiers</a> <a href="#init-declarator-list">init_declarator_list</a> ';'
 	;
 
-<a name="declaration-specifiers">declaration_specifiers</a>
-	: <a href="#storage-class-specifier">storage_class_specifier</a>
-	| <a href="#storage-class-specifier">storage_class_specifier</a> declaration_specifiers
-	| <a href="#type-specifier">type_specifier</a>
-	| <a href="#type-specifier">type_specifier</a> declaration_specifiers
-	| <a href="#type-qualifier">type_qualifier</a>
-	| <a href="#type-qualifier">type_qualifier</a> declaration_specifiers
+<a name="declaration-specifiers">declaration_specifiers</a>			 
+	: <a href="#type-specifier">type_specifier</a> 						//int 
+	| <a href="#type-specifier">type_specifier</a> <a href="#type-qualifier">type_qualifier</a>					//int const
+	| <a href="#type-qualifier">type_qualifier</a> <a href="#type-specifier">type_specifier</a>					//const int
+	| <a href="#storage-class-specifier">storage_class_specifier</a> <a href="#type-specifier">type_specifier</a>			//static int 
+	| <a href="#storage-class-specifier">storage_class_specifier</a> <a href="#type-specifier">type_specifier</a> <a href="#type-qualifier">type_qualifier</a>		//static int const
+	| <a href="#storage-class-specifier">storage_class_specifier</a> <a href="#type-qualifier">type_qualifier</a> <a href="#type-specifier">type_specifier</a>		//static const int
 	;
 
 <a name="init-declarator-list">init_declarator_list</a>
@@ -216,18 +216,23 @@ of the comp.lang.c FAQ, can be ftp'ed from ftp.uu.net, file
 
 <a name="type-specifier">type_specifier</a>
 	: <a href="ANSI-C-grammar-l.html#VOID">VOID</a>
-	| <a href="ANSI-C-grammar-l.html#CHAR">CHAR</a>
-	| <a href="ANSI-C-grammar-l.html#SHORT">SHORT</a>
-	| <a href="ANSI-C-grammar-l.html#INT">INT</a>
-	| <a href="ANSI-C-grammar-l.html#LONG">LONG</a>
 	| <a href="ANSI-C-grammar-l.html#FLOAT">FLOAT</a>
 	| <a href="ANSI-C-grammar-l.html#DOUBLE">DOUBLE</a>
-	| <a href="ANSI-C-grammar-l.html#SIGNED">SIGNED</a>
-	| <a href="ANSI-C-grammar-l.html#UNSIGNED">UNSIGNED</a>
+	| <a href="#integer-type">integer_type</a>
 	| <a href="#struct-or-union-specifier">struct_or_union_specifier</a>
 	| <a href="#enum-specifier">enum_specifier</a>
 	| <a href="ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
 	;
+
+<a name="integer-type">integer_type</a>
+	: <a href="ANSI-C-grammar-l.html#CHAR">CHAR</a>
+	| <a href="ANSI-C-grammar-l.html#SHORT">SHORT</a>
+	| <a href="ANSI-C-grammar-l.html#INT">INT</a>
+	| <a href="ANSI-C-grammar-l.html#LONG">LONG</a>
+	| <a href="ANSI-C-grammar-l.html#SIGNED">SIGNED</a> integer_type
+	| <a href="ANSI-C-grammar-l.html#UNSIGNED">UNSIGNED</a> integer_type
+	| <a href="ANSI-C-grammar-l.html#SHORT">SHORT</a> integer_type
+	| <a href="ANSI-C-grammar-l.html#LONG">LONG</a> integer_type
 
 <a name="struct-or-union-specifier">struct_or_union_specifier</a>
 	: <a href="#struct-or-union">struct_or_union</a> <a href="ANSI-C-grammar-l.html#check-type">IDENTIFIER</a> '{' <a href="#struct-declaration-list">struct_declaration_list</a> '}'
@@ -250,10 +255,9 @@ of the comp.lang.c FAQ, can be ftp'ed from ftp.uu.net, file
 	;
 
 <a name="specifier-qualifier-list">specifier_qualifier_list</a>
-	: <a href="#type-specifier">type_specifier</a> specifier_qualifier_list
-	| <a href="#type-specifier">type_specifier</a>
-	| <a href="#type-qualifier">type_qualifier</a> specifier_qualifier_list
-	| <a href="#type-qualifier">type_qualifier</a>
+	: <a href="#type-specifier">type_specifier</a> 
+	| <a href="#type-specifier">type_specifier</a> <a href="#type-qualifier">type_qualifier</a>
+	| <a href="#type-qualifier">type_qualifier</a> <a href="#type-specifier">type_specifier</a> 
 	;
 
 <a name="struct-declarator-list">struct_declarator_list</a>
@@ -297,7 +301,8 @@ of the comp.lang.c FAQ, can be ftp'ed from ftp.uu.net, file
 	| '(' <a href="#declarator">declarator</a> ')'
 	| direct_declarator '[' <a href="#constant-expression">constant_expression</a> ']'
 	| direct_declarator '[' ']'
-	| direct_declarator '(' <a href="#parameter-type-list">parameter_type_list</a> ')' | direct_declarator '(' ')'
+	| direct_declarator '(' <a href="#parameter-type-list">parameter_type_list</a> ')' 
+	| direct_declarator '(' ')'
 	;
 
 <a name="pointer">pointer</a>
