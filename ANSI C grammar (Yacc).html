@@ -307,9 +307,9 @@ of the comp.lang.c FAQ, can be ftp'ed from ftp.uu.net, file
 
 <a name="pointer">pointer</a>
 	: '*'
-	| '*' <a href="#type-qualifier-list">type_qualifier_list</a>
-	| '*' pointer
-	| '*' <a href="#type-qualifier-list">type_qualifier_list</a> pointer
+	| '*' <a href="ANSI-C-grammar-l.html#CONST">CONST</a>
+	| pointer '*' 
+	| pointer '*' <a href="ANSI-C-grammar-l.html#CONST">CONST</a>
 	;
 
 <a name="type-qualifier-list">type_qualifier_list</a>

@@ -186,7 +186,7 @@ def t_ignore_COMMENT(t):
 def t_IDENTIFIER(t):
     r"""[_A-Za-z][_A-Za-z0-9]*"""
     t.type = reserved_dict.get(t.value, 'IDENTIFIER')
-    if is_type(t.value):
+    if t.type == 'IDENTIFIER' and is_type(t.value):
         t.type = "TYPE_NAME"
     return t
 

@@ -3,6 +3,7 @@ from __future__ import print_function
 import ply.lex as lex
 import ply.yacc as yacc
 import ZCClex
+from symbol.symtab import symtab_declaration
 from ZCClex import tokens
 from pprint import pprint
 
@@ -90,6 +91,7 @@ def p_declaration(p):
     """
     del_list = handleMissingSEMI(p, "declaration")
     construct_node(p, "declaration", del_list)
+    symtab_declaration(p[0])
 
 
 #    print(p[0])
@@ -207,7 +209,7 @@ cast_expression : unary_expression
         p[0] = p[1]
     else:
         construct_node(p, "cast_expression")
-    # printAST(p[0], 0)
+        # printAST(p[0], 0)
 
 
 def p_multiplicative_expression(p):
@@ -450,14 +452,14 @@ expression : assignment_expression
         p[0] = p[1]
     else:
         construct_node(p, "expression")
-    # if len(p) == 2:
-    #     construct_node(p, "expression")
-    # elif len(p) == 4:
-    #     # printAST(p[1])
-    #     p[1].append(p[3])
-    #     p[0] = p[1]
-    # else:
-    #     raise Exception("expression just has 2 or 4 children")
+        # if len(p) == 2:
+        #     construct_node(p, "expression")
+        # elif len(p) == 4:
+        #     # printAST(p[1])
+        #     p[1].append(p[3])
+        #     p[0] = p[1]
+        # else:
+        #     raise Exception("expression just has 2 or 4 children")
 
 
 def p_constant_expression(p):
@@ -507,7 +509,12 @@ def p_integer_type(p):
     | SHORT integer_type
     | LONG integer_type
     """
-    construct_node(p, "integer_type")
+    if len(p) == 2:
+        construct_node(p, "integer_type")
+    else:
+        p[2].insert(1, p[1])
+        p[0] = p[2]
+        # print(p[0])
 
 
 def p_type_specifier(p):
@@ -526,9 +533,11 @@ def p_type_specifier(p):
 def p_struct_or_union_specifier(p):
     """
 struct_or_union_specifier : struct_or_union IDENTIFIER LCURLYBRACKET struct_declaration_list RCURLYBRACKET
+    | struct_or_union TYPE_NAME LCURLYBRACKET struct_declaration_list RCURLYBRACKET
     | struct_or_union ERRORID LCURLYBRACKET struct_declaration_list RCURLYBRACKET
     | struct_or_union LCURLYBRACKET struct_declaration_list RCURLYBRACKET
     | struct_or_union IDENTIFIER
+    | struct_or_union TYPE_NAME
     | struct_or_union ERRORID
     """
     handleErrorID(p, 2)
@@ -587,7 +596,8 @@ struct_declarator_list : declarator
     if len(p) == 2:
         construct_node(p, "struct_declarator_list")
     else:
-        p[1].append(p[2:])
+        p[1].append(p[2])
+        p[1].append(p[3])
         p[0] = p[1]
 
 
@@ -657,8 +667,8 @@ direct_declarator : direct_declarator LSQUAREBRACKET constant_expression RSQUARE
     | direct_declarator LBRACKET parameter_type_list RBRACKET
     | direct_declarator LBRACKET RBRACKET
     | IDENTIFIER
-    | ERRORID
     | LBRACKET declarator RBRACKET
+    | ERRORID
     """
     handleErrorID(p, 1)
     construct_node(p, "direct_declarator")
@@ -667,11 +677,17 @@ direct_declarator : direct_declarator LSQUAREBRACKET constant_expression RSQUARE
 def p_pointer(p):
     """
 pointer : STAR
-    | STAR type_qualifier_list
-    | STAR pointer
-    | STAR type_qualifier_list pointer
+    | STAR CONST
+    | pointer STAR
+    | pointer STAR CONST
     """
-    construct_node(p, "pointer")
+    if p[1][0] != 'pointer':
+        construct_node(p, "pointer")
+    else:
+        p[1].append(p[2])
+        if len(p) == 4:
+            p[1].append(p[3])
+        p[0] = p[1]
 
 
 def p_type_qualifier_list(p):
@@ -698,7 +714,8 @@ parameter_list : parameter_declaration
     if len(p) == 2:
         construct_node(p, "parameter_list")
     else:
-        p[1].append(p[2:])
+        p[1].append(p[2])
+        p[1].append(p[3])
         p[0] = p[1]
 
 
@@ -919,6 +936,8 @@ def p_error(p):
 
     print("Syntax error at %r, at line: %d, column: %d." % (
         p.value, p.lexer.lineno, ZCClex.find_column(p.lexer.lexdata, p)))
+    if p.type == 'IDENTIFIER':
+        print("Undefined Type " + p.value)
 
     if parser.errorCounter > 0:
         print("In panic mode\n")
