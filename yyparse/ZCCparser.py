@@ -517,7 +517,7 @@ def p_type_specifier(p):
     | DOUBLE
     | struct_or_union_specifier
     | enum_specifier
-    | IDENTIFIER
+    | TYPE_NAME
     """
     #    | TYPE_NAME
     construct_node(p, "type_specifier")
