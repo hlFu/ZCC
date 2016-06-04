@@ -1,0 +1,25 @@
+// {
+//     // See https://go.microsoft.com/fwlink/?LinkId=733558
+//     // for the documentation about the tasks.json format
+//     "version": "0.1.0",
+//     "command": "tsc",
+//     "isShellCommand": true,
+//     "args": ["-p", "."],
+//     "showOutput": "silent",
+//     "problemMatcher": "$tsc"
+// }
+{
+    "version": "0.1.0",
+
+    // The command is tsc. Assumes that tsc has been installed using npm install -g typescript
+    "command": "python.exe",
+
+    // The command is a shell script
+    "isShellCommand": true,
+
+    // Show the output window only if unrecognized errors occur.
+    "showOutput": "always",
+
+    // args is the HelloWorld program to compile.
+    "args": ["${file}"]
+}
