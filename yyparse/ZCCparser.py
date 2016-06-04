@@ -4,6 +4,7 @@ import ply.lex as lex
 import ply.yacc as yacc
 import ZCClex
 from symbol.symtab import symtab_declaration
+from public.ZCCglobal import global_context, current_context
 from ZCClex import tokens
 from pprint import pprint
 
@@ -79,7 +80,7 @@ def p_external_declaration(p):
     | declaration
     """
     p[0] = p[1]
-    # construct_node(p, "external_declaration")
+        # construct_node(p, "external_declaration")
 
 
 def p_declaration(p):
@@ -91,7 +92,7 @@ def p_declaration(p):
     """
     del_list = handleMissingSEMI(p, "declaration")
     construct_node(p, "declaration", del_list)
-    symtab_declaration(p[0])
+    symtab_declaration(p[0], current_context)
 
 
 #    print(p[0])
@@ -477,7 +478,8 @@ init_declarator_list : init_declarator
     if len(p) == 2:
         construct_node(p, "init_declarator_list")
     else:
-        p[1].append(p[2:])
+        p[1].append(p[2])
+        p[1].append(p[3])
         p[0] = p[1]
 
 
@@ -630,7 +632,8 @@ enumerator_list : enumerator
     if len(p) == 2:
         construct_node(p, "enumerator_list")
     else:
-        p[1].append(p[2:])
+        p[1].append(p[2])
+        p[1].append(p[3])
         p[0] = p[1]
 
 
@@ -777,7 +780,8 @@ initializer_list : initializer
     if len(p) == 2:
         construct_node(p, "initializer_list")
     else:
-        p[1].append(p[2:])
+        p[1].append(p[2])
+        p[1].append(p[3])
         p[0] = p[1]
 
 

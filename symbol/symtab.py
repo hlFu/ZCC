@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from public.ZCCglobal import CType, FuncType, StructType, UnionType, EnumType, ArrayType
+from public.ZCCglobal import CType, FuncType, StructType, UnionType, EnumType, ArrayType, Context
 from copy import deepcopy
 
 c_types = {
@@ -78,6 +78,8 @@ def get_IDENTIFER(ast):
             return get_IDENTIFER(ast[1])
         else:
             return ast[1]
+    # if ast[0] == 'init_declarator':
+    #     return get_IDENTIFER(ast[1])
 
 
 def symtab_type_specifier(type_specifier):
@@ -100,6 +102,8 @@ def symtab_type_specifier(type_specifier):
     elif child_name == 'enum_specifier':
         return symtab_enum_specifier(type_specifier[1])
 
+    else:
+        return c_types[type_specifier[1]]
 
 def symtab_integer_type(integer_type):
     type_name = integer_type[-1]
@@ -140,6 +144,8 @@ def symtab_integer_type(integer_type):
 
 
 def symtab_struct_or_union_specifier(struct_or_union_specifier):
+    type_name = ''
+    c_type_class = None
     if struct_or_union_specifier[1][1] == 'struct':
         type_name = 'struct '
         c_type_class = StructType
@@ -151,6 +157,7 @@ def symtab_struct_or_union_specifier(struct_or_union_specifier):
         name = type_name + struct_or_union_specifier[2]
         if name not in c_types:
             c_types[name] = CType('Incomplete')
+        print 'Add to type record:', name, ':', c_types[name]
         return c_types[name]
     elif len(struct_or_union_specifier) == 5:
         return c_type_class(
@@ -163,6 +170,7 @@ def symtab_struct_or_union_specifier(struct_or_union_specifier):
         if name in c_types:
             raise Exception("Redefine " + struct_or_union_specifier[2])
         c_types[name] = c_type_class(members=symtab_struct_declaration_list(struct_or_union_specifier[4]))
+        print 'Add to type record:', name, ':', c_types[name]
         return c_types[name]
 
 
@@ -211,9 +219,14 @@ def symtab_declaration_specifiers(declaration_specifiers):
     return storage_class_specifier, type_qualifier, c_type
 
 
-def symtab_declaration(declaration):
+def symtab_declaration(declaration, context):
+    """
+    :type declaration: list[list]
+    :type context: Context
+    :return: None
+    """
     storage_class_specifier, type_qualifier, c_type = \
-        symtab_declaration_specifiers(declaration[1])
+        symtab_declaration_specifiers(declaration[1])  # type:
     if type_qualifier == 'const':
         c_type = deepcopy(c_type)
         c_type.is_const[-1] = True
@@ -225,12 +238,41 @@ def symtab_declaration(declaration):
                 if init_declarator != ';':
                     if children_are(init_declarator, ['declarator']):
                         name = get_IDENTIFER(init_declarator[1])
+                        if name in c_types:
+                            raise Exception('Redefine ' + name)
                         c_type = symtab_declarator(init_declarator[1], c_type)
+                        if c_type.type == 'Incomplete':
+                            raise Exception('Typedef Incomplete type as ' + name)
                         print 'Add to type record:', name, ':', c_type
                         c_types[name] = c_type
                         return
                     else:
                         raise Exception("Initialization is not permit after typedef.")
+    elif storage_class_specifier == 'static' \
+            or storage_class_specifier == 'extern':
+        c_type = deepcopy(c_type)  # type: CType
+        c_type.storage_class = storage_class_specifier
+
+    if children_are(declaration,
+                    ['declaration_specifiers',
+                     'init_declarator_list', ';']):
+        symtab_init_declarator_list(declaration[2], c_type, context)
+
+
+def symtab_init_declarator_list(init_declarator_list, c_type, context):
+    """
+    :type init_declarator_list: list[list]
+    :type c_type: CType
+    :type context: Context
+    :return: None
+    """
+    for init_declarator in init_declarator_list[1:]:
+        if init_declarator != ',':
+            if children_are(init_declarator, ['declarator']):
+                context.local[get_IDENTIFER(init_declarator[1])] =\
+                    symtab_declarator(init_declarator[1], c_type)
+            else:
+                raise Exception('Not support initializer in declarator')
 
 
 def symtab_declarator(declarator, c_type):

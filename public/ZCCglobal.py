@@ -40,19 +40,21 @@ from const import *
 class CType(object):
     def __init__(self, type_name, size=0, **kwargs):
         """
-        :param type_name:str
-        :param size: int
-        :param kwargs: dict
+        :type type_name:str
+        :type size: int
+        :type kwargs: dict
         :return: None
         """
         # "int","char","double","float","long","short","void",
         # "struct","union","enum","function", "array"
         # 'Incomplete'
-        self.type = type_name
+        self.type = type_name  # type: str
         # sizeof
-        self.size = size
-        self.is_const = [False]
-        self.storage_class = None  # "static", "extern"
+        self.size = size  # type: int
+        self.is_const = [False]  # type: list[bool]
+        self.storage_class = None  # type: str
+        # "static", "extern"
+
         for key in kwargs:
             self.__setattr__(key, kwargs[key])
 
@@ -82,7 +84,7 @@ class CType(object):
 class StructType(CType):
     def __init__(self, members=[]):
         """
-        :param members: [('id',CType),...]
+        :type members: list[(str,CType)]
         :return:
         """
         CType.__init__(self, 'struct')
@@ -92,7 +94,7 @@ class StructType(CType):
         for member in members:
             self.members[member[0]] = member[1]
             self.offset[member[0]] = self.size
-            self.size = self.size + member[1].size
+            self.size += member[1].size
 
     def __repr__(self):
         return self.__add_star__('struct ' + repr(self.members))
@@ -101,12 +103,12 @@ class StructType(CType):
 class UnionType(CType):
     def __init__(self, members=[]):
         """
-        :param members:[('id',CType())]
+        :type members: list[(str,CType)]
         :return:
         """
         CType.__init__(self, 'union')
-        self.members = {}
-        self.size = 0
+        self.members = {}  # type: dict[str,CType]
+        self.size = 0  # type: int
         for member in members:
             self.members[member[0]] = member[1]
             if member[1].size > self.size:
@@ -120,7 +122,7 @@ class UnionType(CType):
 class EnumType(CType):
     def __init__(self, values):
         """
-        :param values: {'id': int()}
+        :type values: dict[(str,int)]
         :return:
         """
         CType.__init__(self, 'enum')
@@ -134,7 +136,7 @@ class EnumType(CType):
 class FuncType(CType):
     """
     :type return_type: CType
-    :type parameter_list: list(('identifier', CType)),[('id',CType),...]
+    :type parameter_list: list[(str,CType)]
     :type parameter_list_is_extendable: bool
     """
 
@@ -172,3 +174,18 @@ class ArrayType(CType):
     def __repr__(self):
         return self.__add_star__(repr(self.member_type) + "[%d]" % self.length)
 
+
+class Context:
+    outer_context = None  # type: Context
+    func_type = None  # type: FuncType
+    local = {}  # type: dict[str,CType]
+
+    def __init__(self, outer_context=None, func_type=None):
+        self.outer_context = outer_context
+        self.func_type = func_type
+
+    def __repr__(self):
+        return repr(self.func_type) + " local: " + repr(self.local)
+
+global_context = Context()
+current_context = global_context
