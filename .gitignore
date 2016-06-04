@@ -64,4 +64,6 @@ target/
 .ipynb_checkpoints
 
 #PyCharm
+
+!/test/*.c
 .idea/

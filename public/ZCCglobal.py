@@ -52,7 +52,7 @@ class StructType(CType):
         :return:
         """
         CType.__init__(self, 'struct')
-        self.members = {}
+        self.members = {}  # type: dict[str,CType]
         self.offset = {}
         self.size = 0
         for member in members:
@@ -165,7 +165,7 @@ error = False
 class TreeNode(object):
     def __init__(self, ast, **kwargs):
         """
-        :param ast: list[list]
+        :type ast: list[list]
         :return:
         """
         self.ast = ast  # type: list[list]
@@ -175,8 +175,8 @@ class TreeNode(object):
     def __getitem__(self, item):
         return self.ast.__getitem__(item)
 
-    def __set__(self, instance, value):
-        self.ast.__setitem__(instance, value)
+    def __setitem__(self, key, value):
+        self.ast.__setitem__(key, value)
 
     def __len__(self):
         return self.ast.__len__()

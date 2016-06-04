@@ -13,9 +13,11 @@ aTuple = (1, 2)
 
 def handleMissingSEMI(p, parentname="", checkPair=()):
     last_idx = len(p) - 1
-    if (len(checkPair) == 0 or (len(checkPair) > 0 and p[checkPair[0]] == checkPair[1])) and p[last_idx] != ';':
-        print("Error type: missing semicolon before %s. at line: %d, lex pos: %d in %s.\n" % (
-            p[last_idx], p.lineno(last_idx), p.lexpos(last_idx), parentname))
+    if (len(checkPair) == 0 or (len(checkPair) > 0 and p[
+            checkPair[0]] == checkPair[1])) and p[last_idx] != ';':
+        print(
+            "Error type: missing semicolon before %s. at line: %d, lex pos: %d in %s.\n" %
+            (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx), parentname))
         p[last_idx] = ';'
         parser.errorCounter = 0
         parser.errok()
@@ -27,16 +29,19 @@ def handleMissingSEMI(p, parentname="", checkPair=()):
 def handleMissingRCURLYBRACKET(p):
     last_idx = len(p) - 1
     if p[last_idx] != '}':
-        print("Error type: missing right curly bracket before %s. at line: %d, lex pos: %d.\n" % (
-            p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
+        print(
+            "Error type: missing right curly bracket before %s. at line: %d, lex pos: %d.\n" %
+            (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx)))
         p[last_idx] = '}'
         parser.errorCounter = 0
         parser.errok()
 
 
 def handleErrorID(p, idx):
-    if len(p) > idx and type(p[idx]) == type(aTuple) and p[idx][1] == "ERRORID":
-        print("Syntax error at %r, at line: %d, lex pos: %d." % (p[idx][0], p.lineno(idx), p.lexpos(idx)))
+    if len(p) > idx and isinstance(p[idx],
+                                   type(aTuple)) and p[idx][1] == "ERRORID":
+        print("Syntax error at %r, at line: %d, lex pos: %d." %
+              (p[idx][0], p.lineno(idx), p.lexpos(idx)))
         print("Error type: wrong IDENTIFIER format.\n")
         p[idx] = p[idx][0]
         parser.errorCounter = 0
@@ -154,7 +159,7 @@ def p_postfix_expression(p):
         | postfix_expression PERIOD IDENTIFIER
         | postfix_expression PTR_OP IDENTIFIER
         | postfix_expression PERIOD ERRORID
-        | postfix_expression PTR_OP ERRORID        
+        | postfix_expression PTR_OP ERRORID
         | postfix_expression INC_OP
         | postfix_expression DEC_OP
     """
@@ -205,7 +210,7 @@ unary_operator : AND
 
 
 def p_cast_expression(p):
-    """    
+    """
 cast_expression : unary_expression
     | LBRACKET type_name RBRACKET cast_expression
     """
@@ -228,7 +233,9 @@ multiplicative_expression : cast_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
     if len(p) == 2:
@@ -242,12 +249,14 @@ def p_additive_expression(p):
 additive_expression : multiplicative_expression
     | additive_expression PLUS multiplicative_expression
     | additive_expression MINUS multiplicative_expression
-    | additive_expression PLUS error multiplicative_expression    
-    | additive_expression MINUS error multiplicative_expression    
+    | additive_expression PLUS error multiplicative_expression
+    | additive_expression MINUS error multiplicative_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
     if len(p) == 2:
@@ -266,7 +275,9 @@ shift_expression : additive_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
     if len(p) == 2:
@@ -289,7 +300,9 @@ relational_expression : shift_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
 
@@ -309,7 +322,9 @@ equality_expression : relational_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
     if len(p) == 2:
@@ -326,7 +341,9 @@ and_expression : equality_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
 
@@ -344,7 +361,9 @@ exclusive_or_expression : and_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
 
@@ -355,14 +374,16 @@ exclusive_or_expression : and_expression
 
 
 def p_inclusive_or_expression(p):
-    """    
+    """
 inclusive_or_expression : exclusive_or_expression
     | inclusive_or_expression OR exclusive_or_expression
     | inclusive_or_expression OR error exclusive_or_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
 
@@ -380,7 +401,9 @@ logical_and_expression : inclusive_or_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
 
@@ -398,7 +421,9 @@ logical_or_expression : logical_and_expression
     """
     del_list = []
     if len(p) == 5:
-        print("Error type: error token after %s. at line: %d.\n" % (p[2], p.lineno(2)))
+        print(
+            "Error type: error token after %s. at line: %d.\n" %
+            (p[2], p.lineno(2)))
         del_list.append(3)
         parser.errorCounter = 0
 
@@ -937,7 +962,11 @@ def p_error(p):
     if p.type == 'EOF':
         if ZCClex.lexer.lexer.curlyBalance > 0:
             parser.errok()
-            return lex.LexToken('RCURCLYBRACKET', '}', p.lexer.lineno, p.lexer.lexpos)
+            return lex.LexToken(
+                'RCURCLYBRACKET',
+                '}',
+                p.lexer.lineno,
+                p.lexer.lexpos)
         else:
             return
 
