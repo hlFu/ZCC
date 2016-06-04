@@ -3,8 +3,8 @@ from __future__ import print_function
 import ply.lex as lex
 import ply.yacc as yacc
 import ZCClex
-from symbol.symtab import symtab_declaration
-from public.ZCCglobal import global_context, current_context
+from symbol.symtab import symtab_declaration, symtab_function_definition
+from public.ZCCglobal import global_context
 from ZCClex import tokens
 from pprint import pprint
 
@@ -80,7 +80,11 @@ def p_external_declaration(p):
     | declaration
     """
     p[0] = p[1]
-        # construct_node(p, "external_declaration")
+    if p[0][0] == 'declaration':
+        symtab_declaration(p[0], global_context)
+    elif p[0][0] == 'function_definition':
+        symtab_function_definition(p[0], global_context)
+    # construct_node(p, "external_declaration")
 
 
 def p_declaration(p):
@@ -92,7 +96,6 @@ def p_declaration(p):
     """
     del_list = handleMissingSEMI(p, "declaration")
     construct_node(p, "declaration", del_list)
-    symtab_declaration(p[0], current_context)
 
 
 #    print(p[0])

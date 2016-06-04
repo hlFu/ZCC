@@ -1,41 +1,5 @@
-# common structure put here
-from const import *
-
-
-# class TreeNode(object):
-#     kind = str()  #
-#     children = list()  # TreeNode
-#     attr = Attr()
-#
-#
-# class Attr(object):
-#     # IDENTIFIER
-#     value = str()  # i,j
-#     type = Ctype()
-#
-#     is_global=bool()
-#     is_static=bool()
-#     addVariableTable=list() # compound_statment
-#
-# class Struct(object):
-#     member = {"IDENTIFIER":(ctype, offset = int())}
-
-# class CType(object):
-#     def __init__(self, c_base_type):
-#         """
-#         @type c_base_type: CBaseType
-#         """
-#         self.c_base_type = c_base_type
-#         self.is_const = [c_base_type.is_const]
-#         self.storage_class = None
-#
-#     def pointer_count(self):
-#         """
-#         :return: int
-#         """
-#         return len(self.is_const) - 1
-#
-
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 class CType(object):
     def __init__(self, type_name, size=0, **kwargs):
@@ -134,20 +98,24 @@ class EnumType(CType):
 
 
 class FuncType(CType):
-    """
-    :type return_type: CType
-    :type parameter_list: list[(str,CType)]
-    :type parameter_list_is_extendable: bool
-    """
-
     def __init__(self, return_type,
                  parameter_list=list(),
-                 parameter_list_is_extendable=False):
+                 parameter_list_is_extendable=False,
+                 compound_statement=None):
+        """
+        :type return_type: CType
+        :type parameter_list: list[(str,CType)]
+        :type parameter_list_is_extendable: bool
+        :type compound_statement: TreeNode
+        """
         CType.__init__(self, 'function')
         self.return_type = return_type
+        self.storage_class = return_type.storage_class
+        return_type.storage_class = None
         self.parameter_list = parameter_list
         self.parameter_list_is_extendable = \
             parameter_list_is_extendable  # printf(char* format,...)
+        self.compound_statement = compound_statement
 
     def __repr__(self):
         rval = repr(self.return_type) + " function("
@@ -156,6 +124,7 @@ class FuncType(CType):
         if self.parameter_list_is_extendable:
             rval += '...'
         rval += ')'
+        rval += repr(self.compound_statement.context)
         return self.__add_star__(rval)
 
 
@@ -170,6 +139,7 @@ class ArrayType(CType):
         self.length = length
         self.member_type = c_type
         self.storage_class = c_type.storage_class
+        c_type.storage_class = None
 
     def __repr__(self):
         return self.__add_star__(repr(self.member_type) + "[%d]" % self.length)
@@ -178,14 +148,35 @@ class ArrayType(CType):
 class Context:
     outer_context = None  # type: Context
     func_type = None  # type: FuncType
-    local = {}  # type: dict[str,CType]
+    local = None  # type: dict[str,CType]
 
     def __init__(self, outer_context=None, func_type=None):
         self.outer_context = outer_context
         self.func_type = func_type
+        self.local = {}
 
     def __repr__(self):
-        return repr(self.func_type) + " local: " + repr(self.local)
+        return " local: " + repr(self.local)
+
 
 global_context = Context()
-current_context = global_context
+error = False
+
+class TreeNode(object):
+    def __init__(self, ast, **kwargs):
+        """
+        :param ast: list[list]
+        :return:
+        """
+        self.ast = ast  # type: list[list]
+        for key in kwargs:
+            self.__setattr__(key, kwargs[key])
+
+    def __getitem__(self, item):
+        return self.ast.__getitem__(item)
+
+    def __set__(self, instance, value):
+        self.ast.__setitem__(instance, value)
+
+    def __len__(self):
+        return self.ast.__len__()

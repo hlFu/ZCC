@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from public.ZCCglobal import CType, FuncType, StructType, UnionType, EnumType, ArrayType, Context
+from public.ZCCglobal import CType, FuncType, StructType, UnionType, EnumType, ArrayType, Context, TreeNode
 from copy import deepcopy
 
 c_types = {
@@ -24,27 +24,6 @@ c_types = {
     'double': CType('double', size=8),
     'float': CType('float', size=4),
     'void': CType('void', size=0),
-
-    # 'char const': CBaseType('char', is_signed=True, size=1, is_const=True),
-    # 'short const': CBaseType('short', is_signed=True, size=2, is_const=True),
-    # 'int const': CBaseType('int', is_signed=True, size=4, is_const=True),
-    # 'long const': CBaseType('long', is_signed=True, size=4, is_const=True),
-    # 'long long const': CBaseType('long', is_signed=True, size=8, is_const=True),
-    #
-    # 'signed char const': CBaseType('char', is_signed=True, size=1, is_const=True),
-    # 'signed short const': CBaseType('short', is_signed=True, size=2, is_const=True),
-    # 'signed int const': CBaseType('int', is_signed=True, size=4, is_const=True),
-    # 'signed long const': CBaseType('long', is_signed=True, size=4, is_const=True),
-    # 'signed long long const': CBaseType('long', is_signed=True, size=8, is_const=True),
-    #
-    # 'unsigned char const': CBaseType('char', is_signed=False, size=1, is_const=True),
-    # 'unsigned short const': CBaseType('short', is_signed=False, size=2, is_const=True),
-    # 'unsigned int const': CBaseType('int', is_signed=False, size=4, is_const=True),
-    # 'unsigned long const': CBaseType('long', is_signed=False, size=4, is_const=True),
-    # 'unsigned long long const': CBaseType('long', is_signed=False, size=8, is_const=True),
-    #
-    # 'double const': CBaseType('double', size=8, is_const=True),
-    # 'float const': CBaseType('float', size=4, is_const=True),
 }
 
 
@@ -78,32 +57,33 @@ def get_IDENTIFER(ast):
             return get_IDENTIFER(ast[1])
         else:
             return ast[1]
-    # if ast[0] == 'init_declarator':
-    #     return get_IDENTIFER(ast[1])
+            # if ast[0] == 'init_declarator':
+            #     return get_IDENTIFER(ast[1])
 
 
 def symtab_type_specifier(type_specifier):
     child_name = type_specifier[1][0]
     if child_name == 'void':
-        return c_types['void']
+        return deepcopy(c_types['void'])
 
     elif child_name == 'float':
-        return c_types['float']
+        return deepcopy(c_types['float'])
 
     elif child_name == 'double':
-        return c_types['double']
+        return deepcopy(c_types['double'])
 
     elif child_name == 'integer_type':
-        return symtab_integer_type(type_specifier[1])
+        return deepcopy(symtab_integer_type(type_specifier[1]))
 
     elif child_name == 'struct_or_union_specifier':
-        return symtab_struct_or_union_specifier(type_specifier[1])
+        return deepcopy(symtab_struct_or_union_specifier(type_specifier[1]))
 
     elif child_name == 'enum_specifier':
-        return symtab_enum_specifier(type_specifier[1])
+        return deepcopy(symtab_enum_specifier(type_specifier[1]))
 
     else:
-        return c_types[type_specifier[1]]
+        return deepcopy(c_types[type_specifier[1]])
+
 
 def symtab_integer_type(integer_type):
     type_name = integer_type[-1]
@@ -191,7 +171,6 @@ def symtab_struct_declaration(struct_declaration):
     storage_class_specifier, type_qualifier, c_type = \
         symtab_declaration_specifiers(struct_declaration[1])
     if type_qualifier == 'const':
-        c_type = deepcopy(c_type)
         c_type.is_const[-1] = True
     for declarator in struct_declaration[2][1:]:
         if declarator != ',':
@@ -228,7 +207,6 @@ def symtab_declaration(declaration, context):
     storage_class_specifier, type_qualifier, c_type = \
         symtab_declaration_specifiers(declaration[1])  # type:
     if type_qualifier == 'const':
-        c_type = deepcopy(c_type)
         c_type.is_const[-1] = True
     if storage_class_specifier == 'typedef':
         if children_are(declaration,
@@ -250,7 +228,6 @@ def symtab_declaration(declaration, context):
                         raise Exception("Initialization is not permit after typedef.")
     elif storage_class_specifier == 'static' \
             or storage_class_specifier == 'extern':
-        c_type = deepcopy(c_type)  # type: CType
         c_type.storage_class = storage_class_specifier
 
     if children_are(declaration,
@@ -269,10 +246,12 @@ def symtab_init_declarator_list(init_declarator_list, c_type, context):
     for init_declarator in init_declarator_list[1:]:
         if init_declarator != ',':
             if children_are(init_declarator, ['declarator']):
-                context.local[get_IDENTIFER(init_declarator[1])] =\
-                    symtab_declarator(init_declarator[1], c_type)
+                name = get_IDENTIFER(init_declarator[1])
+                if name in context.local:
+                    raise Exception('Redefine ' + name)
+                context.local[name] = symtab_declarator(init_declarator[1], c_type)
             else:
-                raise Exception('Not support initializer in declarator')
+                raise Exception('Not support initializer in declarator now')
 
 
 def symtab_declarator(declarator, c_type):
@@ -281,6 +260,7 @@ def symtab_declarator(declarator, c_type):
     :type c_type: CType
     :return: CType
     """
+    c_type = deepcopy(c_type)
     if children_are(declarator, ['direct_declarator']):
         return symtab_direct_declarator(declarator[1], c_type)
     elif children_are(declarator, ['pointer', 'direct_declarator']):
@@ -293,7 +273,6 @@ def symtab_pointer(poiner, c_type):
     :type c_type: CType
     :return: CType
     """
-    c_type = deepcopy(c_type)
     for child in poiner[1:]:
         if child == '*':
             c_type.is_const.append(False)
@@ -332,7 +311,6 @@ def symtab_direct_declarator(direct_declarator, c_type):
                 )
         )
     elif children_are(direct_declarator, ['direct_declarator', '[', ']']):
-        c_type = deepcopy(c_type)
         c_type.is_const.append(False)
         return symtab_direct_declarator(
                 direct_declarator[1],
@@ -386,7 +364,6 @@ def symtab_parameter_declaration(parameter_declaration):
                         storage_class_specifier +
                         'is not permitted in parameter list')
     if type_qualifier == 'const':
-        c_type = deepcopy(c_type)
         c_type.is_const[-1] = True
     if children_are(parameter_declaration, ['declaration_specifiers']):
         return '', c_type
@@ -394,4 +371,72 @@ def symtab_parameter_declaration(parameter_declaration):
         return get_IDENTIFER(parameter_declaration[2]), \
                symtab_declarator(parameter_declaration[2], c_type)
     elif children_are(parameter_declaration, ['declaration_specifiers', 'abstract_declarator']):
-        raise Exception("Not support abstract_declarator, parameter must be assigned to an identifier")
+        raise Exception("Not support abstract_declarator, parameter must be assigned an identifier")
+
+
+def symtab_function_definition(function_definition, context):
+    """
+    :type function_definition: list[list]
+    :type context: Context
+    :return:
+    """
+    storage_class_specifier, type_qualifier, c_type = \
+        symtab_declaration_specifiers(function_definition[1])
+    if storage_class_specifier == 'typedef':
+        raise Exception('Function definition cannot be typedef')
+    if storage_class_specifier == 'static':
+        c_type.storage_class = storage_class_specifier
+    if type_qualifier == 'const':
+        c_type.is_const[-1] = True
+    c_type = symtab_declarator(function_definition[2], c_type)
+    name = get_IDENTIFER(function_definition[2])
+    if not isinstance(c_type, FuncType):
+        raise Exception(name + " lack parameter list")
+
+    if name in context.local:
+        old_type = context.local[name]
+        if not isinstance(old_type, FuncType):
+            raise Exception('Redefine ' + name)
+        else:
+            pass  # compare c_type with old_type.
+            print('We do not perform parameter check and return value check on function ' + name)
+            c_type = old_type
+    compound_statement = c_type.compound_statement = \
+        TreeNode(function_definition[3],
+                 context=Context(outer_context=context, func_type=c_type))
+    context.local[name] = c_type
+    symtab_compound_statement(compound_statement, compound_statement.context)
+
+
+def symtab_compound_statement(compound_statement, context):
+    if children_are(compound_statement, ['{', 'statement_list', '}']):
+        symtab_statement_list(compound_statement[2], context)
+    elif children_are(compound_statement, ['{', 'declaration_list', '}']):
+        symtab_declaration_list(compound_statement[2], context)
+    elif children_are(compound_statement, ['{', 'declaration_list', 'statement_list', '}']):
+        symtab_declaration_list(compound_statement[2], context)
+        symtab_statement_list(compound_statement[3], context)
+
+
+def symtab_declaration_list(declaration_list, context):
+    for declaration in declaration_list[1:]:
+        symtab_declaration(declaration, context)
+
+
+def symtab_statement_list(statement_list, context):
+    """
+    :type statement_list: list[list]
+    :type context: Context
+    :return: None
+    """
+    print("There is no semantic check now")
+    for statement in statement_list[1:]:
+        symtab_statement(statement, context)
+
+
+def symtab_statement(statement, context):
+    """
+    :type statement_list: list[list]
+    :type context: Context
+    :return: None
+    """
