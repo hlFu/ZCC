@@ -109,3 +109,11 @@ declaration
                     mytype
     ;
 ```    
+##代码生成
+###generation
+用来解析树和调用self.tools中的函数进行翻译  
+在generation.generate中有详细注释和例子
+###utility
+翻译的工具函数  
+已完成各种初始化、变量绑定、寄存器简单优化  
+目前支持赋值、简单计算、跳转、call等基本功能
