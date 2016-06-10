@@ -117,3 +117,9 @@ declaration
 翻译的工具函数  
 已完成各种初始化、变量绑定、寄存器简单优化  
 目前支持赋值、简单计算、跳转、call等基本功能
+
+##代码优化
+###优化类型
+http://www.compileroptimizations.com/index.html
+###constant propagation
+http://people.eecs.berkeley.edu/~bodik/cs264/lectures/4-chaotic-notes.pdf
