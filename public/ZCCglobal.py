@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+
 class CType(object):
     def __init__(self, type_name, size=0, **kwargs):
         """
@@ -28,8 +29,16 @@ class CType(object):
         """
         return len(self.is_const) - 1
 
-    # def __repr__(self):
-    #     return self.type
+    def size(self):
+        """
+        Must get size by this function!!!
+        :rtype: int
+        """
+        if self.pointer_count() == 0:
+            return self.size
+        else:
+            return 4
+
     def __repr__(self):
         return self.__add_star__(self.type)
 
@@ -44,9 +53,44 @@ class CType(object):
                 rval += " const"
         return rval
 
+    def __eq__(self, other):
+        """
+        :type self: CType
+        :type other: CType
+        :rtype: bool
+        """
+        if self.pointer_count() != other.pointer_count():
+            return False
+        if self.type != other.type:
+            return False
+        return True
+
+    def is_integer(self):
+        """
+        :rtype: bool
+        """
+        return self.pointer_count() > 0 or self.type in \
+                                           ['char', 'short', 'int', 'long', 'long long',
+                                            'signed char', 'signed short', 'signed int', 'signed long',
+                                            'signed long long',
+                                            'unsigned char', 'unsigned short', 'unsigned int', 'unsigned long',
+                                            'unsigned long long']
+
+    def is_number(self):
+        """
+        :rtype: bool
+        """
+        return self.pointer_count() > 0 or self.type in \
+                                           ['char', 'short', 'int', 'long', 'long long',
+                                            'signed char', 'signed short', 'signed int', 'signed long',
+                                            'signed long long',
+                                            'unsigned char', 'unsigned short', 'unsigned int', 'unsigned long',
+                                            'unsigned long long',
+                                            'float', 'double']
+
 
 class StructType(CType):
-    def __init__(self, members=[]):
+    def __init__(self, members=list()):
         """
         :type members: list[(str,CType)]
         :return:
@@ -63,9 +107,12 @@ class StructType(CType):
     def __repr__(self):
         return self.__add_star__('struct ' + repr(self.members))
 
+    def __eq__(self, other):
+        return CType.__eq__(self, other) and has_same_members(self, other)
+
 
 class UnionType(CType):
-    def __init__(self, members=[]):
+    def __init__(self, members=list()):
         """
         :type members: list[(str,CType)]
         :return:
@@ -82,6 +129,9 @@ class UnionType(CType):
 
         return self.__add_star__('union ' + repr(self.members))
 
+    def __eq__(self, other):
+        return CType.__eq__(self, other) and has_same_members(self, other)
+
 
 class EnumType(CType):
     def __init__(self, values):
@@ -96,6 +146,9 @@ class EnumType(CType):
     def __repr__(self):
         return self.__add_star__('enum ' + repr(self.values))
 
+    def __eq__(self, other):
+        raise Exception('Not support enum')
+
 
 class FuncType(CType):
     def __init__(self, return_type,
@@ -109,13 +162,13 @@ class FuncType(CType):
         :type compound_statement: TreeNode
         """
         CType.__init__(self, 'function')
-        self.return_type = return_type
+        self.return_type = return_type  # type: CType
         self.storage_class = return_type.storage_class
         return_type.storage_class = None
-        self.parameter_list = parameter_list
+        self.parameter_list = parameter_list  # type: list[(str,CType)]
         self.parameter_list_is_extendable = \
-            parameter_list_is_extendable  # printf(char* format,...)
-        self.compound_statement = compound_statement
+            parameter_list_is_extendable  # type: bool
+        self.compound_statement = compound_statement  # type: TreeNode
 
     def __repr__(self):
         rval = repr(self.return_type) + " function("
@@ -126,6 +179,24 @@ class FuncType(CType):
         rval += ')'
         rval += repr(self.compound_statement.context)
         return self.__add_star__(rval)
+
+    def __eq__(self, other):
+        """
+        :type other: FuncType
+        :rtype: bool
+        """
+        if not CType.__eq__(self, other):
+            return False
+        if not self.return_type == other.return_type:
+            return False
+        if not self.parameter_list_is_extendable == other.parameter_list_is_extendable:
+            return False
+        if not len(self.parameter_list) == len(other.parameter_list):
+            return False
+        for i in xrange(len(self.parameter_list)):
+            if not self.parameter_list_is_extendable[i][1] == other.parameter_list_is_extendable[i][1]:
+                return False
+        return True
 
 
 class ArrayType(CType):
@@ -144,6 +215,38 @@ class ArrayType(CType):
     def __repr__(self):
         return self.__add_star__(repr(self.member_type) + "[%d]" % self.length)
 
+    def __eq__(self, other):
+        """
+        :type other: ArrayType
+        :rtype: bool
+        """
+        if not CType.__eq__(self, other):
+            return False
+        return self.length == other.length and \
+            self.member_type == other.member_type
+
+
+class LiteralType(CType):
+    def __init__(self, val):
+        """
+        :type c_type: CType
+        :return:
+        """
+        CType.__init__(self, '')
+        self.val = val
+        if isinstance(val, str):
+            self.type = 'char'
+            self.size = 1
+            self.is_const = [True, False]
+        elif isinstance(val, int):
+            self.type = 'int'
+            self.size = 4
+            self.is_const = [True]
+        elif isinstance(val, float):
+            self.type = 'double'
+            self.size = 4
+            self.is_const = [True]
+
 
 class Context:
     outer_context = None  # type: Context
@@ -151,16 +254,43 @@ class Context:
     local = None  # type: dict[str,CType]
 
     def __init__(self, outer_context=None, func_type=None):
-        self.outer_context = outer_context
-        self.func_type = func_type
+        self.outer_context = outer_context  # type: Context
+        self.func_type = func_type  # type: FuncType
         self.local = {}
 
     def __repr__(self):
         return " local: " + repr(self.local)
 
+    def get_return_type(self):
+        """
+        :rtype: CType
+        """
+        if self.func_type is None:
+            if self.outer_context is None:
+                return  # global_context has no return type
+            else:
+                return self.outer_context.get_return_type()
+        else:
+            return self.func_type.return_type
+
+    def get_type_by_id(self, identifier):
+        """
+        :type identifier: str
+        :rtype: CType
+        """
+        if identifier in self.local:
+            return self.local[identifier]
+        if self.func_type is not None:
+            for parameter in self.func_type.parameter_list:
+                if identifier == parameter[0]:
+                    return parameter[1]
+        if self.outer_context is not None:
+            return self.outer_context.get_type_by_id(identifier)
+
 
 global_context = Context()
 error = False
+
 
 class TreeNode(object):
     def __init__(self, ast, **kwargs):
@@ -180,3 +310,22 @@ class TreeNode(object):
 
     def __len__(self):
         return self.ast.__len__()
+
+
+def has_same_members(struct_type1, struct_type2):
+    """
+    :type struct_type1: StructType
+    :type struct_type2: StructType
+    :rtype: bool
+    """
+    for member in struct_type1.members:
+        if member not in struct_type2.members \
+                or not struct_type1.members[member] == struct_type2.members[member]:
+            return False
+
+    for member in struct_type2.members:
+        if member not in struct_type1.members \
+                or not struct_type2.members[member] == \
+                        struct_type1.members[member]:
+            return False
+    return True
