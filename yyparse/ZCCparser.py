@@ -179,7 +179,8 @@ def p_argument_expression_list(p):
     if len(p) == 2:
         construct_node(p, "argument_expression_list")
     else:
-        p[1].append(p[2:])
+        p[1].append(p[2])
+        p[1].append(p[3])
         p[0] = p[1]
 
 

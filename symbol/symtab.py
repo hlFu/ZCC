@@ -403,9 +403,9 @@ def symtab_function_definition(function_definition, context):
         if not isinstance(old_type, FuncType):
             raise Exception('Redefine ' + name)
         else:
-            pass  # compare c_type with old_type.
-            # todo
-            print('We do not perform parameter check and return value check on function ' + name)
+            if not c_type == old_type:
+                print_error(repr(c_type) + "is not consistent with old declaration " + repr(old_type))
+            # print('We do not perform parameter check and return value check on function ' + name)
             c_type = old_type
     compound_statement = c_type.compound_statement = \
         TreeNode(function_definition[3],
@@ -482,27 +482,6 @@ def symtab_selection_statement(selection_statement, context):
         symtab_statement(selection_statement[7], context)
 
 
-def expression_rtype_check(expression, context, type_name):
-    """
-    :type expression: list[list]
-    :type context: Context
-    :type type_name: str
-    :rtype: CType
-    """
-    rtype = symtab_expression(expression, context)
-    if type_name == 'bool':
-        right_type = rtype.is_integer()
-    elif type_name == 'integer':
-        right_type = rtype.is_integer()
-    elif type_name == 'number':
-        right_type = rtype.is_number()
-    else:
-        raise Exception('Illegal type in expression_rtype_check')
-    if not right_type:
-        print_error(repr(rtype) + ' is not or cannot be recognized as ' + type_name)
-    return rtype
-
-
 def symtab_iteration_statement(iteration_statement, context):
     if children_are(iteration_statement, ['while', '(', 'expression', ')', 'statement']):
         expression_rtype_check(iteration_statement[3], context, 'bool')
@@ -553,6 +532,32 @@ def symtab_jump_statement(jump_statement, context):
             print_error(repr(c_type) + ' is not consistant with the function return type ' + repr(r_type))
     else:
         raise Exception('Unknow child list for jump_statement')
+
+
+def expression_rtype_check(expression, context, type_name):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :type type_name: str
+    :rtype: CType
+    """
+    rtype = symtab_expression(expression, context)
+    if type_name == 'bool':
+        right_type = rtype.is_integer()
+    elif type_name == 'integer':
+        right_type = rtype.is_integer()
+    elif type_name == 'number':
+        right_type = rtype.is_number()
+    elif type_name == 'callable':
+        if not isinstance(rtype, FuncType) or \
+                (rtype.pointer_count() != 0 and rtype.pointer_count() != 1):
+            print_error(repr(rtype) + " is not callable.")
+        return rtype
+    else:
+        raise Exception('Illegal type in expression_rtype_check')
+    if not right_type:
+        print_error(repr(rtype) + ' is not or cannot be recognized as ' + type_name)
+    return rtype
 
 
 expression_handler = {}
@@ -611,17 +616,30 @@ def symtab_primary_expression(expression, context):
         c_type = LiteralType(eval(expression[1][1]))
         context.add_literal(expression[1][1], c_type)
         return c_type
-    # elif children_are(expression, ['constant']):
-    #     # return symtab_constant(expression[1], context)
-    # elif expression[1][0] == '"':
-    #     val = eval(expression[1])
-    #     return LiteralType(val)
-    # else:
-    #     name = expression[1]
-    #     c_type = context.get_type_by_id(name)
-    #     if c_type is None:
-    #         print_error('Unknown identifier ' + name)
-    #     return c_type
+        # elif children_are(expression, ['constant']):
+        #     # return symtab_constant(expression[1], context)
+        # elif expression[1][0] == '"':
+        #     val = eval(expression[1])
+        #     return LiteralType(val)
+        # else:
+        #     name = expression[1]
+        #     c_type = context.get_type_by_id(name)
+        #     if c_type is None:
+        #         print_error('Unknown identifier ' + name)
+        #     return c_type
+
+
+def symtab_argument_expression_list(argument_expression_list, context, func):
+    """
+    :type argument_expression_list: list[str]
+    :type context: Context
+    :type func: FuncType
+    """
+    for argument_expression in argument_expression_list[1:]:
+        if argument_expression != ',':
+            symtab_expression(argument_expression, context)
+    # todo: parameter type check
+    pass
 
 
 def symtab_postfix_expression(expression, context):
@@ -630,6 +648,39 @@ def symtab_postfix_expression(expression, context):
     :type context: Context
     :rtype: CType
     """
+    if children_are(expression, ['expression', '[', 'expression', ']']):
+        index = expression_rtype_check(expression[3], context, 'integer')
+        base = symtab_expression(expression[1], context)
+        if base.pointer_count() > 0:
+            rtype = deepcopy(base)
+            rtype.is_const.pop()
+            return rtype
+        if isinstance(base, ArrayType):
+            return base.member_type
+        print_error(repr(base) + " is not pointer or array, cannot apply [] operation.")
+        return c_types['void']
+    elif children_are(expression, ['expression', '(', ')']):
+        c_type = expression_rtype_check(expression[1], context, 'callable')
+        if not isinstance(c_type, FuncType):
+            return c_types['void']
+        symtab_argument_expression_list(['argument_expression_list'], context, c_type)
+        return c_type.return_type
+
+    elif children_are(expression, ['expression', '(', 'argument_expression_list', ')']):
+        c_type = expression_rtype_check(expression[1], context, 'callable')
+        if not isinstance(c_type, FuncType):
+            return c_types['void']
+        symtab_argument_expression_list(expression[3], context, c_type)
+        return c_type.return_type
+
+    elif children_are(expression, ['expression', '.', 'IDENTIFIER']):
+        pass
+    elif children_are(expression, ['expression', '->', 'IDENTIFIER']):
+        pass
+    elif children_are(expression, ['expression', '++']):
+        pass
+    elif children_are(expression, ['expression', '--']):
+        pass
     # todo
     pass
 
@@ -640,9 +691,33 @@ def symtab_unary_expression(expression, context):
     :type context: Context
     :rtype: CType
     """
+    if children_are(expression, ["unary_operator", 'expression']):
+        c_type = symtab_expression(expression[2], context)
+        return symtab_unary_operator(expression[1], context, c_type)
     # todo
     pass
 
+def symtab_unary_operator(unary_operator, context, c_type):
+    """
+    :type expression: list[str]
+    :type context: Context
+    :type c_type: CType
+    :rtype: CType
+    """
+    if unary_operator[1] == '*':
+        if c_type.pointer_count() > 0:
+            rtype = deepcopy(c_type)
+            rtype.is_const.pop()
+            return rtype
+        if isinstance(c_type, ArrayType):
+            return c_type.member_type
+        print_error(repr(c_type) + " is not pointer or array, cannot apply [] operation.")
+        return c_types['void']
+    elif unary_operator[1] == '&':
+        rtype = deepcopy(c_type)
+        rtype.is_const.append(True)
+        return rtype
+    # todo
 
 def symtab_cast_expression(expression, context):
     """
