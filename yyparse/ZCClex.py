@@ -174,11 +174,12 @@ tokens = (
 
 def t_STRING_LITERAL(t):
     r'\"(\\.|[^\\\"])*\"'
+    t.value = ['STRING', t.value]
     return t
 
 
 def t_ignore_COMMENT(t):
-    r'(/\*(.|\n)*?\*/)|(//.*)|^\#.*'
+    r'(/\*(.|\n)*?\*/)|(//.*)|(^\#.*)|(\n\#.*)|(\r\n\#.*)'
     t.lexer.lineno += t.value.count('\n')
     pass
 
@@ -188,16 +189,24 @@ def t_IDENTIFIER(t):
     t.type = reserved_dict.get(t.value, 'IDENTIFIER')
     if t.type == 'IDENTIFIER' and is_type(t.value):
         t.type = "TYPE_NAME"
+    if t.type == 'IDENTIFIER':
+        t.value = ['IDENTIFIER', t.value]
     return t
 
 
 def t_NUMBER_CONSTANT(t):
     r"""([0-9]*\.[0-9]+|[0-9]+\.)([eE][+\-]?[0-9]+)?[flFL]?|[0-9]+([eE][+\-]?[0-9]+)[flFL]?|[1-9][0-9]*[uU]?[lL]{,2}|0[0-7]*[uU]?[lL]{,2}|0[xX][0-9a-fA-F]+[uU]?[lL]{,2}"""
+    val = eval(t.value)
+    if isinstance(val, float):
+        t.value = ['DOUBLE', t.value]
+    else:
+        t.value = ['INTEGER', t.value]
     return t
 
 
 def t_CHARACTER_CONSTANT(t):
     r"\'([^\'\\\n]|(\\[\'\"?\\abfnrtv]|[0-7]{1,3}|x[0-9a-fA-F]{1,2}))\'"
+    t.value = ['INTEGER', str(ord(eval(t.value)))]
     return t
 
 
@@ -334,8 +343,8 @@ def t_LITERAL(t):
 
 # Define a rule so we can track line numbers
 def t_newline(t):
-    r'\n+'
-    t.lexer.lineno += len(t.value)
+    r'\n'
+    t.lexer.lineno += 1 # len(t.value)
 
 
 t_ignore = ' \t'
