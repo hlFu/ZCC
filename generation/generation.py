@@ -31,7 +31,7 @@ class generator:
                 self.tools.newFunc(funcName)
                 #这部分就是要解析树并调用tools函数翻译
                 #下面是我乱加的
-                if(key=='main'):
+                '''if(funcName=='main'):
                     self.tools.add('l_i',1)
                     self.tools.mov('x1',2)
                     self.tools.sub('l_i','x1')
@@ -44,7 +44,9 @@ class generator:
                     self.tools.mov('x1',2)
                     self.tools.mov('x2',3)
                     self.tools.add('x1',1)
-                    self.tools.ret(funcName)
+                    self.tools.ret(funcName)'''
+                self.tools.showMap()
+                self.tools.ret(funcName)
         self.tools.end()
     
     def output(self,fileName):
