@@ -177,7 +177,8 @@ class FuncType(CType):
         if self.parameter_list_is_extendable:
             rval += '...'
         rval += ')'
-        rval += repr(self.compound_statement.context)
+        if self.compound_statement is not None:
+            rval += repr(self.compound_statement.context)
         return self.__add_star__(rval)
 
     def __eq__(self, other):
@@ -185,8 +186,11 @@ class FuncType(CType):
         :type other: FuncType
         :rtype: bool
         """
-        if not CType.__eq__(self, other):
+        if self.type != other.type:
             return False
+        if self.pointer_count() + other.pointer_count() > 1:
+            if self.pointer_count() != other.pointer_count():
+                return False
         if not self.return_type == other.return_type:
             return False
         if not self.parameter_list_is_extendable == other.parameter_list_is_extendable:
@@ -194,7 +198,7 @@ class FuncType(CType):
         if not len(self.parameter_list) == len(other.parameter_list):
             return False
         for i in xrange(len(self.parameter_list)):
-            if not self.parameter_list_is_extendable[i][1] == other.parameter_list_is_extendable[i][1]:
+            if not self.parameter_list[i][1] == other.parameter_list[i][1]:
                 return False
         return True
 
@@ -223,7 +227,7 @@ class ArrayType(CType):
         if not CType.__eq__(self, other):
             return False
         return self.length == other.length and \
-            self.member_type == other.member_type
+               self.member_type == other.member_type
 
 
 class LiteralType(CType):
@@ -286,10 +290,30 @@ class Context:
                     return parameter[1]
         if self.outer_context is not None:
             return self.outer_context.get_type_by_id(identifier)
+        return None  # if not find
+
+    def add_literal(self, name, literal):
+        """
+        :type name: str
+        :type literal: LiteralType
+        """
+        context = self
+        while context.outer_context is not None:
+            context = context.outer_context
+        context.literal[name] = literal
 
 
-global_context = Context()
-error = False
+class GlobalContext(Context):
+    def __init__(self):
+        Context.__init__(self)
+        self.literal = {}  # type: dict[str,LiteralType]
+
+    def __repr__(self):
+        return 'literals:' + repr(self.literal) + '\n' + Context.__repr__(self)
+
+
+global_context = GlobalContext()
+error = [False]
 
 
 class TreeNode(object):

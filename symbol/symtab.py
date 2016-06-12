@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from public.ZCCglobal import CType, FuncType, StructType, UnionType, \
-    EnumType, ArrayType, Context, TreeNode, error, LiteralType
+    EnumType, ArrayType, Context, TreeNode, LiteralType, error
 from copy import deepcopy
 
 c_types = {
@@ -26,10 +26,6 @@ c_types = {
     'float': CType('float', size=4),
     'void': CType('void', size=0),
 }
-
-
-# "int","char","long","short","double","float","void",
-# "struct","union","enum","function"
 
 
 def children_are(ast, children):
@@ -65,7 +61,7 @@ def get_IDENTIFER(ast):
         elif ast[1][0] == 'direct_declarator':
             return get_IDENTIFER(ast[1])
         else:
-            return ast[1]
+            return ast[1][1]
             # if ast[0] == 'init_declarator':
             #     return get_IDENTIFER(ast[1])
 
@@ -335,8 +331,8 @@ def symtab_constant_expression(constant_expression):
     :return: int
     """
     if constant_expression[1][0] == 'primary_expression' \
-            and constant_expression[1][1][0] == 'constant':
-        return int(constant_expression[1][1][1][0])
+            and constant_expression[1][1][0] == 'INTEGER':
+        return int(constant_expression[1][1][1])
     else:
         raise Exception('Just support immediate number.')
 
@@ -427,6 +423,8 @@ def symtab_compound_statement(compound_statement, context):
         symtab_declaration_list(compound_statement[2], context)
         symtab_statement_list(compound_statement[3], context)
 
+
+#
 
 def symtab_declaration_list(declaration_list, context):
     for declaration in declaration_list[1:]:
@@ -573,19 +571,17 @@ def symtab_expression(expression, context):
         return expression_handler[expression[0]](expression, context)
 
 
-def symtab_constant(expression, context):
-    """
-    :type expression: list
-    :type context: Context
-    :rtype: CType
-    """
-    if expression[1][0] == "'":
-        val = ord(eval(expression[1]))
-    else:
-        val = eval(expression[1])
-    return LiteralType(val)
-
-
+# def symtab_constant(expression, context):
+#     """
+#     :type expression: list
+#     :type context: Context
+#     :rtype: CType
+#     """
+#     if expression[1][0] == "'":
+#         val = ord(eval(expression[1]))
+#     else:
+#         val = eval(expression[1])
+#     return LiteralType(val)
 
 
 def symtab_primary_expression(expression, context):
@@ -596,17 +592,36 @@ def symtab_primary_expression(expression, context):
     """
     if children_are(expression, ['(', 'expression', ')']):
         return symtab_expression(expression[2], context)
-    elif children_are(expression, ['constant']):
-        return symtab_constant(expression[1], context)
-    elif expression[1][0] == '"':
-        val = eval(expression[1])
-        return LiteralType(val)
-    else:
-        name = expression[1]
+    elif children_are(expression, ['IDENTIFIER']):
+        name = expression[1][1]
         c_type = context.get_type_by_id(name)
         if c_type is None:
             print_error('Unknown identifier ' + name)
+            # todo: type_error check
         return c_type
+    elif children_are(expression, ['INTEGER']):
+        c_type = LiteralType(eval(expression[1][1]))
+        # context.add_literal(expression[1][1], c_type)
+        return c_type
+    elif children_are(expression, ['DOUBLE']):
+        c_type = LiteralType(eval(expression[1][1]))
+        context.add_literal(expression[1][1], c_type)
+        return c_type
+    elif children_are(expression, ['STRING']):
+        c_type = LiteralType(eval(expression[1][1]))
+        context.add_literal(expression[1][1], c_type)
+        return c_type
+    # elif children_are(expression, ['constant']):
+    #     # return symtab_constant(expression[1], context)
+    # elif expression[1][0] == '"':
+    #     val = eval(expression[1])
+    #     return LiteralType(val)
+    # else:
+    #     name = expression[1]
+    #     c_type = context.get_type_by_id(name)
+    #     if c_type is None:
+    #         print_error('Unknown identifier ' + name)
+    #     return c_type
 
 
 def symtab_postfix_expression(expression, context):
@@ -826,5 +841,4 @@ expression_handler = {'primary_expression': symtab_primary_expression,
 
 def print_error(error_info):
     print error_info
-    global error
-    error = True
+    error[0] = True

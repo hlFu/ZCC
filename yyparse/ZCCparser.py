@@ -105,12 +105,12 @@ def p_declaration(p):
 
 #    print(p[0])
 
-def p_constant(p):
-    """
-    constant : NUMBER_CONSTANT
-    | CHARACTER_CONSTANT
-    """
-    construct_node(p, "constant")
+# def p_constant(p):
+#     """
+#     constant : NUMBER_CONSTANT
+#     | CHARACTER_CONSTANT
+#     """
+#     construct_node(p, "constant")
 
 
 def p_declaration_specifiers(p):
@@ -139,7 +139,8 @@ def p_primary_expression(p):
     """
     primary_expression : IDENTIFIER
         | ERRORID
-        | constant
+        | NUMBER_CONSTANT
+        | CHARACTER_CONSTANT
         | STRING_LITERAL
         | LBRACKET expression RBRACKET
     """

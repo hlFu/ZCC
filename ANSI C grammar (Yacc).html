@@ -47,10 +47,23 @@ of the comp.lang.c FAQ, can be ftp'ed from ftp.uu.net, file
 %start <a href="#translation-unit">translation_unit</a>
 %%
 
+<a name="IDENTIFIER">IDENTIFIER</a>
+	: IDENTIFIER_NAME
+
+<a name="INTEGER">INTEGER</a>
+	: ORIGINAL_CODE
+
+<a name="DOUBLE">DOUBLE</a>
+	: ORIGINAL_CODE
+
+<a name="STRING">STRING</a>
+	: ORIGINAL_CODE
+
 <a name="primary-expression">primary_expression</a>
-	: <a href="ANSI-C-grammar-l.html#check-type">IDENTIFIER</a>
-	| <a href="ANSI-C-grammar-l.html#CONSTANT">CONSTANT</a>
-	| <a href="ANSI-C-grammar-l.html#STRING-LITERAL">STRING_LITERAL</a>
+	: <a href="#IDENTIFIER">IDENTIFIER</a>
+	| <a href="#INTEGER">INTEGER</a>
+	| <a href="#DOUBLE">DOUBLE</a>
+	| <a href="#STRING">STRING</a>
 	| '(' <a href="#expression">expression</a> ')'
 	;
 
