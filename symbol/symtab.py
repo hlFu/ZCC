@@ -1,5 +1,6 @@
 #!/usr/bin/python
-from public.ZCCglobal import CType, FuncType, StructType, UnionType, EnumType, ArrayType, Context, TreeNode
+from public.ZCCglobal import CType, FuncType, StructType, UnionType, \
+    EnumType, ArrayType, Context, TreeNode, error, LiteralType
 from copy import deepcopy
 
 c_types = {
@@ -34,9 +35,17 @@ c_types = {
 def children_are(ast, children):
     if len(ast) != len(children) + 1:
         return False
-    for i in xrange(1, len(children)):
-        if ast[1 + i][0] != children[i]:
-            return False
+    for i in xrange(0, len(children)):
+        if isinstance(ast[1 + i], str):
+            if ast[1 + i] != children[i]:
+                return False
+        else:
+            if children[i] == 'expression':
+                if ast[1 + i][0] not in expression_handler:
+                    return False
+            else:
+                if ast[1 + i][0] != children[i]:
+                    return False
     return True
 
 
@@ -399,6 +408,7 @@ def symtab_function_definition(function_definition, context):
             raise Exception('Redefine ' + name)
         else:
             pass  # compare c_type with old_type.
+            # todo
             print('We do not perform parameter check and return value check on function ' + name)
             c_type = old_type
     compound_statement = c_type.compound_statement = \
@@ -429,14 +439,392 @@ def symtab_statement_list(statement_list, context):
     :type context: Context
     :return: None
     """
-    print("There is no semantic check now")
     for statement in statement_list[1:]:
         symtab_statement(statement, context)
 
 
 def symtab_statement(statement, context):
     """
-    :type statement_list: list[list]
+    :type statement: list[list]
     :type context: Context
     :return: None
     """
+    if statement[1][0] == 'labeled_statement':
+        raise Exception('Not support label.')
+    if statement[1][0] == 'compound_statment':
+        compound_statement = \
+            TreeNode(statement[1],
+                     context=Context(outer_context=context))
+        symtab_compound_statement(compound_statement, compound_statement.context)
+
+    if statement[1][0] == 'expression_statement':
+        symtab_expression_statement(statement[1], context)
+    if statement[1][0] == 'selection_statement':
+        symtab_selection_statement(statement[1], context)
+    if statement[1][0] == 'iteration_statement':
+        symtab_iteration_statement(statement[1], context)
+    if statement[1][0] == 'jump_statement':
+        symtab_jump_statement(statement[1], context)
+
+
+def symtab_expression_statement(expression_statement, context):
+    if children_are(expression_statement, ['expression', ';']):
+        symtab_expression(expression_statement[1], context)
+
+
+def symtab_selection_statement(selection_statement, context):
+    if children_are(selection_statement, ['SWITCH', '(', 'expression', ')', 'statement']):
+        raise Exception('Not support switch statement')
+
+    if len(selection_statement) >= 6:
+        expression_rtype_check(selection_statement[3], context, 'bool')
+        symtab_statement(selection_statement[5], context)
+
+    if children_are(selection_statement, ['if', '(', 'expression', ')', 'statement', 'else', 'statement']):
+        symtab_statement(selection_statement[7], context)
+
+
+def expression_rtype_check(expression, context, type_name):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :type type_name: str
+    :rtype: CType
+    """
+    rtype = symtab_expression(expression, context)
+    if type_name == 'bool':
+        right_type = rtype.is_integer()
+    elif type_name == 'integer':
+        right_type = rtype.is_integer()
+    elif type_name == 'number':
+        right_type = rtype.is_number()
+    else:
+        raise Exception('Illegal type in expression_rtype_check')
+    if not right_type:
+        print_error(repr(rtype) + ' is not or cannot be recognized as ' + type_name)
+    return rtype
+
+
+def symtab_iteration_statement(iteration_statement, context):
+    if children_are(iteration_statement, ['while', '(', 'expression', ')', 'statement']):
+        expression_rtype_check(iteration_statement[3], context, 'bool')
+        symtab_statement(iteration_statement[5], context)
+
+    if children_are(iteration_statement, ['do', 'statement', 'while', '(', 'expression', ')', ';']):
+        symtab_statement(iteration_statement[2], context)
+        expression_rtype_check(iteration_statement[5], context, 'bool')
+
+    if children_are(iteration_statement,
+                    ['for', '(', 'expression_statement', 'expression_statement', ')', 'statement']):
+        symtab_expression_statement(iteration_statement[3], context)
+        if iteration_statement[4][1] != ';':
+            expression_rtype_check(iteration_statement[4][1], context, 'bool')
+        symtab_statement(iteration_statement[6], context)
+
+    if children_are(iteration_statement,
+                    ['for', '(', 'expression_statement', 'expression_statement', 'expression', ')', 'statement']):
+        symtab_expression_statement(iteration_statement[3], context)
+        if iteration_statement[4][1] != ';':
+            expression_rtype_check(iteration_statement[4][1], context, 'bool')
+        symtab_expression(iteration_statement[5], context)
+        symtab_statement(iteration_statement[7], context)
+
+
+def symtab_jump_statement(jump_statement, context):
+    """
+    :type jump_statement: list[list]
+    :type context: Context
+    """
+    if jump_statement[1][0] == 'continue':
+        pass
+    elif jump_statement[1][0] == 'break':
+        pass
+    elif children_are(jump_statement, ['return', 'expression', ';']):
+        c_type = symtab_expression(jump_statement[2], context)
+        r_type = context.get_return_type()
+        if r_type is None:
+            raise Exception('return statement out of a function')
+        if not c_type == r_type:
+            print_error(repr(c_type) + ' is not consistant with the function return type ' + repr(r_type))
+    elif children_are(jump_statement, ['return', ';']):
+        c_type = c_types['void']
+        r_type = context.get_return_type()
+        if r_type is None:
+            raise Exception('return statement out of a function')
+        if not c_type == r_type:
+            print_error(repr(c_type) + ' is not consistant with the function return type ' + repr(r_type))
+    else:
+        raise Exception('Unknow child list for jump_statement')
+
+
+expression_handler = {}
+
+
+def symtab_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    if expression[0] == 'expression':
+        symtab_expression(expression[1], context)
+        return symtab_expression(expression[3], context)
+    else:
+        return expression_handler[expression[0]](expression, context)
+
+
+def symtab_constant(expression, context):
+    """
+    :type expression: list
+    :type context: Context
+    :rtype: CType
+    """
+    if expression[1][0] == "'":
+        val = ord(eval(expression[1]))
+    else:
+        val = eval(expression[1])
+    return LiteralType(val)
+
+
+
+
+def symtab_primary_expression(expression, context):
+    """
+    :type expression: list
+    :type context: Context
+    :rtype: CType
+    """
+    if children_are(expression, ['(', 'expression', ')']):
+        return symtab_expression(expression[2], context)
+    elif children_are(expression, ['constant']):
+        return symtab_constant(expression[1], context)
+    elif expression[1][0] == '"':
+        val = eval(expression[1])
+        return LiteralType(val)
+    else:
+        name = expression[1]
+        c_type = context.get_type_by_id(name)
+        if c_type is None:
+            print_error('Unknown identifier ' + name)
+        return c_type
+
+
+def symtab_postfix_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    # todo
+    pass
+
+
+def symtab_unary_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    # todo
+    pass
+
+
+def symtab_cast_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    # todo
+    pass
+
+
+def symtab_multiplicative_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_number_operation_expression(expression, context)
+
+
+def symtab_additive_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_number_operation_expression(expression, context)
+
+
+def symtab_shift_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_number_operation_expression(expression, context)
+
+
+def symtab_relational_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_number_operation_expression(expression, context)
+
+
+def symtab_equality_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_number_operation_expression(expression, context)
+
+
+def symtab_number_operation_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    c_type1 = expression_rtype_check(expression[1], context, 'number')
+    c_type2 = expression_rtype_check(expression[3], context, 'number')
+    if c_type1.type == 'double' and c_type1.pointer_count() == 0 \
+            or c_type2.type == 'double' and c_type2.pointer_count() == 0:
+        return c_types['double']
+    elif c_type1.type == 'float' and c_type1.pointer_count() == 0 \
+            or c_type2.type == 'float' and c_type2.pointer_count() == 0:
+        return c_types['float']
+    else:
+        return c_types['int']
+
+
+def symtab_and_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_integer_operation_expression(expression, context)
+
+
+def symtab_exclusive_or_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_integer_operation_expression(expression, context)
+
+
+def symtab_inclusive_or_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_integer_operation_expression(expression, context)
+
+
+def symtab_integer_operation_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    expression_rtype_check(expression[1], context, 'integer')
+    expression_rtype_check(expression[3], context, 'integer')
+    return c_types['int']
+
+
+def symtab_logical_and_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_bool_operation_expression(expression, context)
+
+
+def symtab_logical_or_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    return symtab_bool_operation_expression(expression, context)
+
+
+def symtab_bool_operation_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    expression_rtype_check(expression[1], context, 'bool')
+    expression_rtype_check(expression[3], context, 'bool')
+    return c_types['int']
+
+
+def symtab_conditional_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    expression_rtype_check(expression[1], context, 'bool')
+    c_type1 = symtab_expression(expression[3], context)
+    c_type2 = symtab_expression(expression[5], context)
+    if c_type1 != c_type2:
+        print_error("'%s' and '%s' are not the same type in condition expression."
+                    % (repr(c_type1), repr(c_type2)))
+    return c_type1
+
+
+def symtab_assignment_expression(expression, context):
+    """
+    :type expression: list[list]
+    :type context: Context
+    :rtype: CType
+    """
+    if expression[2][1] in ['*=', '/=', '+=', '-=']:
+        expression_rtype_check(expression[3], context, 'number')
+        return expression_rtype_check(expression[1], context, 'number')
+    elif expression[2][1] in ['%=', '<<=', '>>=', '&=', '^=', '|=']:
+        expression_rtype_check(expression[3], context, 'integer')
+        return expression_rtype_check(expression[1], context, 'integer')
+    elif expression[2][1] == '=':
+        c_type1 = symtab_expression(expression[1], context)
+        c_type2 = symtab_expression(expression[3], context)
+        if (not c_type1.is_number() or not c_type2.is_number()) and \
+                not c_type1 == c_type2:
+            print_error(repr(c_type2) + ' cannot be assigned to ' + repr(c_type1))
+        return c_type1
+
+
+expression_handler = {'primary_expression': symtab_primary_expression,
+                      'postfix_expression': symtab_postfix_expression,
+                      'unary_expression': symtab_unary_expression,
+                      'cast_expression': symtab_cast_expression,
+                      'multiplicative_expression': symtab_multiplicative_expression,
+                      'additive_expression': symtab_additive_expression,
+                      'shift_expression': symtab_shift_expression,
+                      'relational_expression': symtab_relational_expression,
+                      'equality_expression': symtab_equality_expression,
+                      'and_expression': symtab_and_expression,
+                      'exclusive_or_expression': symtab_exclusive_or_expression,
+                      'inclusive_or_expression': symtab_inclusive_or_expression,
+                      'logical_and_expression': symtab_logical_and_expression,
+                      'logical_or_expression': symtab_logical_or_expression,
+                      'conditional_expression': symtab_conditional_expression,
+                      'assignment_expression': symtab_assignment_expression,
+                      'expression': symtab_expression}
+
+
+def print_error(error_info):
+    print error_info
+    global error
+    error = True
