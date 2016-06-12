@@ -177,7 +177,8 @@ class FuncType(CType):
         if self.parameter_list_is_extendable:
             rval += '...'
         rval += ')'
-        rval += repr(self.compound_statement.context)
+        if self.compound_statement is not None:
+            rval += repr(self.compound_statement.context)
         return self.__add_star__(rval)
 
     def __eq__(self, other):

@@ -178,7 +178,7 @@ def t_STRING_LITERAL(t):
 
 
 def t_ignore_COMMENT(t):
-    r'(/\*(.|\n)*?\*/)|(//.*)'
+    r'(/\*(.|\n)*?\*/)|(//.*)|^\#.*'
     t.lexer.lineno += t.value.count('\n')
     pass
 

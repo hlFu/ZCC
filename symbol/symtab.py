@@ -28,10 +28,6 @@ c_types = {
 }
 
 
-# "int","char","long","short","double","float","void",
-# "struct","union","enum","function"
-
-
 def children_are(ast, children):
     if len(ast) != len(children) + 1:
         return False
@@ -426,7 +422,7 @@ def symtab_compound_statement(compound_statement, context):
     elif children_are(compound_statement, ['{', 'declaration_list', 'statement_list', '}']):
         symtab_declaration_list(compound_statement[2], context)
         symtab_statement_list(compound_statement[3], context)
-
+#
 
 def symtab_declaration_list(declaration_list, context):
     for declaration in declaration_list[1:]:
@@ -457,14 +453,14 @@ def symtab_statement(statement, context):
                      context=Context(outer_context=context))
         symtab_compound_statement(compound_statement, compound_statement.context)
 
-    if statement[1][0] == 'expression_statement':
-        symtab_expression_statement(statement[1], context)
-    if statement[1][0] == 'selection_statement':
-        symtab_selection_statement(statement[1], context)
-    if statement[1][0] == 'iteration_statement':
-        symtab_iteration_statement(statement[1], context)
-    if statement[1][0] == 'jump_statement':
-        symtab_jump_statement(statement[1], context)
+    # if statement[1][0] == 'expression_statement':
+    #     symtab_expression_statement(statement[1], context)
+    # if statement[1][0] == 'selection_statement':
+    #     symtab_selection_statement(statement[1], context)
+    # if statement[1][0] == 'iteration_statement':
+    #     symtab_iteration_statement(statement[1], context)
+    # if statement[1][0] == 'jump_statement':
+    #     symtab_jump_statement(statement[1], context)
 
 
 def symtab_expression_statement(expression_statement, context):
@@ -584,8 +580,6 @@ def symtab_constant(expression, context):
     else:
         val = eval(expression[1])
     return LiteralType(val)
-
-
 
 
 def symtab_primary_expression(expression, context):
