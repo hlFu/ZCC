@@ -440,6 +440,7 @@ def symtab_compound_statement(compound_statement, context):
         symtab_statement_list(compound_statement[3], context)
         return compound_statement
 
+
 #
 
 def symtab_declaration_list(declaration_list, context):
@@ -847,7 +848,38 @@ def symtab_additive_expression(expression, context):
     :type context: Context
     :rtype: CType
     """
-    return symtab_number_operation_expression(expression, context)
+    c_type1 = expression_rtype_check(expression[1], context, 'number')
+    c_type2 = expression_rtype_check(expression[3], context, 'number')
+    if isinstance(c_type1, LiteralType) and isinstance(c_type2, LiteralType):
+        if expression[2] == '+':
+            val = c_type1.val + c_type2.val
+        elif expression[2] == '-':
+            val = c_type1.val - c_type2.val
+        if isinstance(val, int):
+            node = TreeNode()
+            node.append('INTEGER')
+        elif isinstance(val, str):
+            print_error("'const char *' added to 'const char *' is illegal.", expression)
+            return c_type1
+        elif isinstance(val, float):
+            node = TreeNode()
+            node.append('DOUBLE')
+            context.add_literal(str(val),LiteralType(val))
+
+        node.append(str(val))
+        del expression[:]
+        expression.append('primary_expression')
+        expression.append(node)
+        return LiteralType(val)
+    else:
+        if c_type1.type == 'double' and c_type1.pointer_count() == 0 \
+                or c_type2.type == 'double' and c_type2.pointer_count() == 0:
+            return c_types['double']
+        elif c_type1.type == 'float' and c_type1.pointer_count() == 0 \
+                or c_type2.type == 'float' and c_type2.pointer_count() == 0:
+            return c_types['float']
+        else:
+            return c_types['int']
 
 
 def symtab_shift_expression(expression, context):
