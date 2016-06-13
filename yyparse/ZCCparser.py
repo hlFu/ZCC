@@ -443,7 +443,7 @@ conditional_expression : logical_or_expression
     if len(p) == 2:
         p[0] = p[1]
     else:
-        construct_node(p, "cnditional_expression")
+        construct_node(p, "conditional_expression")
 
 
 def p_assignment_expression(p):
