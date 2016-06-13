@@ -206,7 +206,7 @@ def symtab_declaration_specifiers(declaration_specifiers):
 
 def symtab_declaration(declaration, context):
     """
-    :type declaration: list[list]
+    :type declaration: TreeNode
     :type context: Context
     :return: None
     """
@@ -247,7 +247,7 @@ def symtab_declaration(declaration, context):
 
 def symtab_init_declarator_list(init_declarator_list, c_type, context):
     """
-    :type init_declarator_list: list[list]
+    :type init_declarator_list: TreeNode
     :type c_type: CType
     :type context: Context
     :return: None
@@ -331,7 +331,7 @@ def symtab_direct_declarator(direct_declarator, c_type):
 
 def symtab_constant_expression(constant_expression):
     """
-    :type constant_expression: list
+    :type constant_expression: TreeNode
     :return: int
     """
     if constant_expression[1][0] == 'primary_expression' \
@@ -344,16 +344,16 @@ def symtab_constant_expression(constant_expression):
 
 def symtab_parameter_type_list(parameter_type_list):
     """
-    :param parameter_type_list:
-    :return:list(('identifier', CType)),[('id',CType),...]
+    :type parameter_type_list: TreeNode
+    :rtype: list[(str, CType)]
     """
     return symtab_parameter_list(parameter_type_list[1])
 
 
 def symtab_parameter_list(parameter_list):
     """
-    :param parameter_list:
-    :return: list(('identifier', CType)),[('id',CType),...]
+    :type parameter_list: TreeNode
+    :rtype: list[(str, CType)]
     """
     rval = []
     for child in parameter_list[1:]:
@@ -364,8 +364,8 @@ def symtab_parameter_list(parameter_list):
 
 def symtab_parameter_declaration(parameter_declaration):
     """
-    :type parameter_declaration: list
-    :return: tuple('id',CType)
+    :type parameter_declaration: TreeNode
+    :rtype: (str, CType)
     """
     storage_class_specifier, type_qualifier, c_type = \
         symtab_declaration_specifiers(parameter_declaration[1])
@@ -388,7 +388,7 @@ def symtab_parameter_declaration(parameter_declaration):
 
 def symtab_function_definition(function_definition, context):
     """
-    :type function_definition: list[list]
+    :type function_definition: TreeNode
     :type context: Context
     :return:
     """
@@ -447,7 +447,7 @@ def symtab_declaration_list(declaration_list, context):
 
 def symtab_statement_list(statement_list, context):
     """
-    :type statement_list: list[list]
+    :type statement_list: TreeNode
     :type context: Context
     :return: None
     """
@@ -457,7 +457,7 @@ def symtab_statement_list(statement_list, context):
 
 def symtab_statement(statement, context):
     """
-    :type statement: list[list]
+    :type statement: TreeNode
     :type context: Context
     :return: None
     """
@@ -527,7 +527,7 @@ def symtab_iteration_statement(iteration_statement, context):
 
 def symtab_jump_statement(jump_statement, context):
     """
-    :type jump_statement: list[list]
+    :type jump_statement: TreeNode
     :type context: Context
     """
     if jump_statement[1][0] == 'continue':
@@ -541,7 +541,9 @@ def symtab_jump_statement(jump_statement, context):
             print_error('return statement out of a function', jump_statement)
             return
         if not c_type == r_type:
-            print_error(repr(c_type) + ' is not consistant with the function return type ' + repr(r_type))
+            print_error("'" + repr(c_type) +
+                        "' is not consistant with the function return type '" +
+                        repr(r_type) + "'", jump_statement)
     elif children_are(jump_statement, ['return', ';']):
         c_type = c_types['void']
         r_type = context.get_return_type()
@@ -556,7 +558,7 @@ def symtab_jump_statement(jump_statement, context):
 
 def expression_rtype_check(expression, context, type_name):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :type type_name: str
     :rtype: CType
@@ -592,7 +594,7 @@ expression_handler = {}
 
 def symtab_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -603,22 +605,9 @@ def symtab_expression(expression, context):
         return expression_handler[expression[0]](expression, context)
 
 
-# def symtab_constant(expression, context):
-#     """
-#     :type expression: list
-#     :type context: Context
-#     :rtype: CType
-#     """
-#     if expression[1][0] == "'":
-#         val = ord(eval(expression[1]))
-#     else:
-#         val = eval(expression[1])
-#     return LiteralType(val)
-
-
 def symtab_primary_expression(expression, context):
     """
-    :type expression: list
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -628,8 +617,12 @@ def symtab_primary_expression(expression, context):
         name = expression[1][1]
         c_type = context.get_type_by_id(name)
         if c_type is None:
+            for exist_name in context.local:
+                if levenshtein(exist_name, name) == 1 and len(name) + len(exist_name) > 3:
+                    print_error("Unknown identifier '" + name +
+                                "', do you mean '" + exist_name + "'?", expression)
+                    return context.local[exist_name]
             print_error('Unknown identifier ' + name, expression)
-            # todo: type_error check
             return c_types['int']
         return c_type
     elif children_are(expression, ['INTEGER']):
@@ -659,6 +652,7 @@ def symtab_primary_expression(expression, context):
 
 def symtab_argument_expression_list(argument_expression_list, context, func):
     """
+    :type argument_expression_list: TreeNode
     :type context: Context
     :type func: FuncType
     """
@@ -668,9 +662,11 @@ def symtab_argument_expression_list(argument_expression_list, context, func):
             argument_type = symtab_expression(argument_expression, context)
             if count < len(func.parameter_list):
                 demand_type = func.parameter_list[count][1]
-                if argument_type != demand_type and \
+                if not argument_type == demand_type and \
                         not (argument_type.is_number() and demand_type.is_number()):
-                    print_error(repr(argument_type) + " can't convert to " + repr(demand_type))
+                    print_error("'" + repr(argument_type) +
+                                "' can't convert to '" + repr(demand_type) +
+                                "'", argument_expression_list)
             elif not func.parameter_list_is_extendable:
                 print_error("Too many argument " + repr(argument_type))
             count += 1
@@ -679,7 +675,7 @@ def symtab_argument_expression_list(argument_expression_list, context, func):
 
 def symtab_postfix_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -718,7 +714,6 @@ def symtab_postfix_expression(expression, context):
                 print_error(repr(c_type) + " has no member named " + member_name)
         return c_types['void']
 
-
     elif children_are(expression, ['expression', '->', 'IDENTIFIER']):
         c_type = expression_rtype_check(expression[1], context, 'struct* or union*')
         member_name = expression[3][1]
@@ -737,7 +732,7 @@ def symtab_postfix_expression(expression, context):
 
 def symtab_unary_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -809,7 +804,7 @@ def symtab_unary_operator(unary_operator, context, c_type):
 
 def symtab_cast_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -820,7 +815,7 @@ def symtab_cast_expression(expression, context):
 
 def symtab_multiplicative_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -829,7 +824,7 @@ def symtab_multiplicative_expression(expression, context):
 
 def symtab_additive_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -838,16 +833,16 @@ def symtab_additive_expression(expression, context):
 
 def symtab_shift_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
-    return symtab_number_operation_expression(expression, context)
+    return symtab_integer_operation_expression(expression, context)
 
 
 def symtab_relational_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -856,7 +851,7 @@ def symtab_relational_expression(expression, context):
 
 def symtab_equality_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -865,7 +860,7 @@ def symtab_equality_expression(expression, context):
 
 def symtab_number_operation_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -883,7 +878,7 @@ def symtab_number_operation_expression(expression, context):
 
 def symtab_and_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -892,7 +887,7 @@ def symtab_and_expression(expression, context):
 
 def symtab_exclusive_or_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -901,7 +896,7 @@ def symtab_exclusive_or_expression(expression, context):
 
 def symtab_inclusive_or_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -910,7 +905,7 @@ def symtab_inclusive_or_expression(expression, context):
 
 def symtab_integer_operation_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -921,7 +916,7 @@ def symtab_integer_operation_expression(expression, context):
 
 def symtab_logical_and_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -930,7 +925,7 @@ def symtab_logical_and_expression(expression, context):
 
 def symtab_logical_or_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -939,7 +934,7 @@ def symtab_logical_or_expression(expression, context):
 
 def symtab_bool_operation_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -950,7 +945,7 @@ def symtab_bool_operation_expression(expression, context):
 
 def symtab_conditional_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -965,7 +960,7 @@ def symtab_conditional_expression(expression, context):
 
 def symtab_assignment_expression(expression, context):
     """
-    :type expression: list[list]
+    :type expression: TreeNode
     :type context: Context
     :rtype: CType
     """
@@ -980,7 +975,9 @@ def symtab_assignment_expression(expression, context):
         c_type2 = symtab_expression(expression[3], context)
         if (not c_type1.is_number() or not c_type2.is_number()) and \
                 not c_type1 == c_type2:
-            print_error(repr(c_type2) + ' cannot be assigned to ' + repr(c_type1))
+            print_error("'" + repr(c_type2) +
+                        "' cannot be assigned to '" +
+                        repr(c_type1) + "'", expression)
         return c_type1
 
 
@@ -1020,3 +1017,31 @@ def print_code(p):
                 print_code(node)
         else:
             print p,
+
+
+def levenshtein(first, second):
+    """
+    :type first: str
+    :type second: str
+    :rtype: int
+    """
+    if len(first) > len(second):
+        first, second = second, first
+    if len(first) == 0:
+        return len(second)
+    if len(second) == 0:
+        return len(first)
+    first_length = len(first) + 1
+    second_length = len(second) + 1
+    distance_matrix = [range(second_length) for x in range(first_length)]
+    # print distance_matrix
+    for i in range(1, first_length):
+        for j in range(1, second_length):
+            deletion = distance_matrix[i - 1][j] + 1
+            insertion = distance_matrix[i][j - 1] + 1
+            substitution = distance_matrix[i - 1][j - 1]
+            if first[i - 1] != second[j - 1]:
+                substitution += 1
+            distance_matrix[i][j] = min(insertion, deletion, substitution)
+    # print distance_matrix
+    return distance_matrix[first_length - 1][second_length - 1]
