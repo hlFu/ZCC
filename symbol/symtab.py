@@ -106,13 +106,13 @@ def symtab_integer_type(integer_type):
         if child == 'unsigned':
             is_unsigned = True
     if is_short and is_long:
-        raise Exception("short and long are conflict")
+        print_error("short and long are conflict", integer_type)
     if is_signed and is_unsigned:
-        raise Exception("signed and unsigned are conflict")
+        print_error("signed and unsigned are conflict", integer_type)
 
     if type_name == 'char':
         if is_short or is_long:
-            raise Exception("Char can't be short or long")
+            print_error("Char can't be short or long", integer_type)
 
     if type_name == 'int':
         if is_short:
@@ -153,7 +153,7 @@ def symtab_struct_or_union_specifier(struct_or_union_specifier):
     elif len(struct_or_union_specifier) == 6:
         name = type_name + struct_or_union_specifier[2]
         if name in c_types:
-            raise Exception("Redefine " + struct_or_union_specifier[2])
+            print_error("Redefine " + struct_or_union_specifier[2], struct_or_union_specifier)
         c_types[name] = c_type_class(members=symtab_struct_declaration_list(struct_or_union_specifier[4]))
         print 'Add to type record:', name, ':', c_types[name]
         return c_types[name]
@@ -186,7 +186,8 @@ def symtab_struct_declaration(struct_declaration):
 
 
 def symtab_enum_specifier(enum_specifier):
-    raise Exception('Not support enum')
+    print_error('Not support enum', enum_specifier)
+    return c_types['int']
 
 
 def symtab_declaration_specifiers(declaration_specifiers):
@@ -222,15 +223,18 @@ def symtab_declaration(declaration, context):
                     if children_are(init_declarator, ['declarator']):
                         name = get_IDENTIFER(init_declarator[1])
                         if name in c_types:
-                            raise Exception('Redefine ' + name)
+                            print_error('Redefine ' + name, declaration)
+                            return
                         c_type = symtab_declarator(init_declarator[1], c_type)
                         if c_type.type == 'Incomplete':
-                            raise Exception('Typedef Incomplete type as ' + name)
+                            print_error('Not support typedef incomplete type', declaration)
+                            return
                         print 'Add to type record:', name, ':', c_type
                         c_types[name] = c_type
                         return
                     else:
-                        raise Exception("Initialization is not permit after typedef.")
+                        print_error("Initialization is not permit after typedef.", declaration)
+                        return
     elif storage_class_specifier == 'static' \
             or storage_class_specifier == 'extern':
         c_type.storage_class = storage_class_specifier
@@ -253,10 +257,10 @@ def symtab_init_declarator_list(init_declarator_list, c_type, context):
             if children_are(init_declarator, ['declarator']):
                 name = get_IDENTIFER(init_declarator[1])
                 if name in context.local:
-                    raise Exception('Redefine ' + name)
+                    print_error('Redeclare ' + name, init_declarator)
                 context.local[name] = symtab_declarator(init_declarator[1], c_type)
             else:
-                raise Exception('Not support initializer in declarator now')
+                print_error('Not support initializer in declarator now', init_declarator)
 
 
 def symtab_declarator(declarator, c_type):
@@ -334,7 +338,8 @@ def symtab_constant_expression(constant_expression):
             and constant_expression[1][1][0] == 'INTEGER':
         return int(constant_expression[1][1][1])
     else:
-        raise Exception('Just support immediate number.')
+        print_error('Just support immediate number.', constant_expression)
+        return 1
 
 
 def symtab_parameter_type_list(parameter_type_list):
@@ -365,9 +370,9 @@ def symtab_parameter_declaration(parameter_declaration):
     storage_class_specifier, type_qualifier, c_type = \
         symtab_declaration_specifiers(parameter_declaration[1])
     if storage_class_specifier is not None:
-        raise Exception('Storage class specifier ' +
-                        storage_class_specifier +
-                        'is not permitted in parameter list')
+        print_error('Storage class specifier ' +
+                    storage_class_specifier +
+                    'is not permitted in parameter list', parameter_declaration)
     if type_qualifier == 'const':
         c_type.is_const[-1] = True
     if children_are(parameter_declaration, ['declaration_specifiers']):
@@ -376,7 +381,9 @@ def symtab_parameter_declaration(parameter_declaration):
         return get_IDENTIFER(parameter_declaration[2]), \
                symtab_declarator(parameter_declaration[2], c_type)
     elif children_are(parameter_declaration, ['declaration_specifiers', 'abstract_declarator']):
-        raise Exception("Not support abstract_declarator, parameter must be assigned an identifier")
+        print_error("Not support abstract_declarator, parameter must be assigned an identifier",
+                    parameter_declaration)
+        return '', c_type
 
 
 def symtab_function_definition(function_definition, context):
@@ -388,7 +395,8 @@ def symtab_function_definition(function_definition, context):
     storage_class_specifier, type_qualifier, c_type = \
         symtab_declaration_specifiers(function_definition[1])
     if storage_class_specifier == 'typedef':
-        raise Exception('Function definition cannot be typedef')
+        print_error('Function definition cannot be typedef', function_definition)
+        return
     if storage_class_specifier == 'static':
         c_type.storage_class = storage_class_specifier
     if type_qualifier == 'const':
@@ -396,22 +404,28 @@ def symtab_function_definition(function_definition, context):
     c_type = symtab_declarator(function_definition[2], c_type)
     name = get_IDENTIFER(function_definition[2])
     if not isinstance(c_type, FuncType):
-        raise Exception(name + " lack parameter list")
+        print_error(name + " lack parameter list", function_definition)
+        return
 
     if name in context.local:
         old_type = context.local[name]
         if not isinstance(old_type, FuncType):
-            raise Exception('Redefine ' + name)
+            print_error('Redefine ' + name, function_definition)
+            return
         else:
             if not c_type == old_type:
-                print_error(repr(c_type) + "is not consistent with old declaration " + repr(old_type))
+                print_error("'" + repr(c_type) +
+                            "' is not consistent with old declaration '" +
+                            repr(old_type) + "'", function_definition)
             # print('We do not perform parameter check and return value check on function ' + name)
             c_type = old_type
-    compound_statement = c_type.compound_statement = \
-        TreeNode(function_definition[3],
-                 context=Context(outer_context=context, func_type=c_type))
+    c_type.compound_statement = function_definition[3]
+    c_type.compound_statement.context = Context(outer_context=context, func_type=c_type)
+    # compound_statement = c_type.compound_statement = \
+    #     TreeNode(function_definition[3],
+    #              context=Context(outer_context=context, func_type=c_type))
     context.local[name] = c_type
-    symtab_compound_statement(compound_statement, compound_statement.context)
+    symtab_compound_statement(c_type.compound_statement, c_type.compound_statement.context)
 
 
 def symtab_compound_statement(compound_statement, context):
@@ -448,11 +462,14 @@ def symtab_statement(statement, context):
     :return: None
     """
     if statement[1][0] == 'labeled_statement':
-        raise Exception('Not support label.')
+        print_error('Not support label.', statement)
+        return
     if statement[1][0] == 'compound_statement':
-        compound_statement = \
-            TreeNode(statement[1],
-                     context=Context(outer_context=context))
+        # compound_statement = \
+        #     TreeNode(statement[1],
+        #              context=Context(outer_context=context))
+        compound_statement = statement[1]
+        compound_statement.context = Context(outer_context=context)
         statement[1] = compound_statement
         symtab_compound_statement(compound_statement, compound_statement.context)
 
@@ -473,8 +490,8 @@ def symtab_expression_statement(expression_statement, context):
 
 def symtab_selection_statement(selection_statement, context):
     if children_are(selection_statement, ['SWITCH', '(', 'expression', ')', 'statement']):
-        raise Exception('Not support switch statement')
-
+        print_error('Not support switch statement', selection_statement)
+        return
     if len(selection_statement) >= 6:
         expression_rtype_check(selection_statement[3], context, 'bool')
         symtab_statement(selection_statement[5], context)
@@ -521,14 +538,16 @@ def symtab_jump_statement(jump_statement, context):
         c_type = symtab_expression(jump_statement[2], context)
         r_type = context.get_return_type()
         if r_type is None:
-            raise Exception('return statement out of a function')
+            print_error('return statement out of a function', jump_statement)
+            return
         if not c_type == r_type:
             print_error(repr(c_type) + ' is not consistant with the function return type ' + repr(r_type))
     elif children_are(jump_statement, ['return', ';']):
         c_type = c_types['void']
         r_type = context.get_return_type()
         if r_type is None:
-            raise Exception('return statement out of a function')
+            print_error('return statement out of a function', jump_statement)
+            return
         if not c_type == r_type:
             print_error(repr(c_type) + ' is not consistant with the function return type ' + repr(r_type))
     else:
@@ -564,7 +583,7 @@ def expression_rtype_check(expression, context, type_name):
     else:
         raise Exception('Illegal type in expression_rtype_check')
     if not right_type:
-        print_error(repr(rtype) + ' is not or cannot be recognized as ' + type_name)
+        print_error(repr(rtype) + ' is not or cannot be recognized as ' + type_name, expression)
     return rtype
 
 
@@ -609,8 +628,9 @@ def symtab_primary_expression(expression, context):
         name = expression[1][1]
         c_type = context.get_type_by_id(name)
         if c_type is None:
-            print_error('Unknown identifier ' + name)
+            print_error('Unknown identifier ' + name, expression)
             # todo: type_error check
+            return c_types['int']
         return c_type
     elif children_are(expression, ['INTEGER']):
         c_type = LiteralType(eval(expression[1][1]))
@@ -793,7 +813,7 @@ def symtab_cast_expression(expression, context):
     :type context: Context
     :rtype: CType
     """
-    raise Exception("Not support cast expression")
+    print_error("Not support cast expression", expression)
     # todo
     pass
 
@@ -983,6 +1003,20 @@ expression_handler = {'primary_expression': symtab_primary_expression,
                       'expression': symtab_expression}
 
 
-def print_error(error_info):
-    print error_info
+def print_error(error_info, ast=None):
+    print "Semantic Error at line %d: " % ast.lineno, error_info
+    print "   ",
     error[0] = True
+    print_code(ast)
+    print
+    print
+
+
+def print_code(p):
+    if p is not None:
+        # if type(p) is list:
+        if len(p) > 0 and not isinstance(p, str):
+            for node in p[1:]:
+                print_code(node)
+        else:
+            print p,
