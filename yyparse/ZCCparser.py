@@ -993,7 +993,7 @@ def printAST(p, n=0):
     if p is not None:
         print(' |' * n, end='-')
         # if type(p) is list:
-        if isinstance(p, list):
+        if len(p) > 0 and not isinstance(p, str):
             print(p[0])
             for node in p[1:]:
                 printAST(node, n + 1)

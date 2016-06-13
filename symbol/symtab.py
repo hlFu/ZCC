@@ -449,10 +449,11 @@ def symtab_statement(statement, context):
     """
     if statement[1][0] == 'labeled_statement':
         raise Exception('Not support label.')
-    if statement[1][0] == 'compound_statment':
+    if statement[1][0] == 'compound_statement':
         compound_statement = \
             TreeNode(statement[1],
                      context=Context(outer_context=context))
+        statement[1] = compound_statement
         symtab_compound_statement(compound_statement, compound_statement.context)
 
     if statement[1][0] == 'expression_statement':
@@ -549,10 +550,17 @@ def expression_rtype_check(expression, context, type_name):
     elif type_name == 'number':
         right_type = rtype.is_number()
     elif type_name == 'callable':
-        if not isinstance(rtype, FuncType) or \
-                (rtype.pointer_count() != 0 and rtype.pointer_count() != 1):
-            print_error(repr(rtype) + " is not callable.")
-        return rtype
+        # if not isinstance(rtype, FuncType) or \
+        #         (rtype.pointer_count() != 0 and rtype.pointer_count() != 1):
+        #     print_error(repr(rtype) + " is not callable.")
+        right_type = isinstance(rtype, FuncType) and \
+                     (rtype.pointer_count() == 0 or rtype.pointer_count() == 1)
+    elif type_name == 'struct or union':
+        right_type = (isinstance(rtype, StructType) or isinstance(rtype, UnionType)) \
+                     and rtype.pointer_count() == 0
+    elif type_name == 'struct* or union*':
+        right_type = (isinstance(rtype, StructType) or isinstance(rtype, UnionType)) \
+                     and rtype.pointer_count() == 1
     else:
         raise Exception('Illegal type in expression_rtype_check')
     if not right_type:
@@ -631,14 +639,21 @@ def symtab_primary_expression(expression, context):
 
 def symtab_argument_expression_list(argument_expression_list, context, func):
     """
-    :type argument_expression_list: list[str]
     :type context: Context
     :type func: FuncType
     """
+    count = 0
     for argument_expression in argument_expression_list[1:]:
         if argument_expression != ',':
-            symtab_expression(argument_expression, context)
-    # todo: parameter type check
+            argument_type = symtab_expression(argument_expression, context)
+            if count < len(func.parameter_list):
+                demand_type = func.parameter_list[count][1]
+                if argument_type != demand_type and \
+                        not (argument_type.is_number() and demand_type.is_number()):
+                    print_error(repr(argument_type) + " can't convert to " + repr(demand_type))
+            elif not func.parameter_list_is_extendable:
+                print_error("Too many argument " + repr(argument_type))
+            count += 1
     pass
 
 
@@ -649,7 +664,7 @@ def symtab_postfix_expression(expression, context):
     :rtype: CType
     """
     if children_are(expression, ['expression', '[', 'expression', ']']):
-        index = expression_rtype_check(expression[3], context, 'integer')
+        expression_rtype_check(expression[3], context, 'integer')
         base = symtab_expression(expression[1], context)
         if base.pointer_count() > 0:
             rtype = deepcopy(base)
@@ -674,15 +689,30 @@ def symtab_postfix_expression(expression, context):
         return c_type.return_type
 
     elif children_are(expression, ['expression', '.', 'IDENTIFIER']):
-        pass
+        c_type = expression_rtype_check(expression[1], context, 'struct or union')
+        member_name = expression[3][1]
+        if isinstance(c_type, StructType) or isinstance(c_type, UnionType):
+            if member_name in c_type.members:
+                return c_type.members[member_name]
+            else:
+                print_error(repr(c_type) + " has no member named " + member_name)
+        return c_types['void']
+
+
     elif children_are(expression, ['expression', '->', 'IDENTIFIER']):
-        pass
+        c_type = expression_rtype_check(expression[1], context, 'struct* or union*')
+        member_name = expression[3][1]
+        if isinstance(c_type, StructType) or isinstance(c_type, UnionType):
+            if member_name in c_type.members:
+                return c_type.members[member_name]
+            else:
+                print_error(repr(c_type) + " has no member named " + member_name)
+        return c_types['void']
+
     elif children_are(expression, ['expression', '++']):
-        pass
+        return expression_rtype_check(expression[1], context, 'integer')
     elif children_are(expression, ['expression', '--']):
-        pass
-    # todo
-    pass
+        return expression_rtype_check(expression[1], context, 'integer')
 
 
 def symtab_unary_expression(expression, context):
@@ -691,11 +721,31 @@ def symtab_unary_expression(expression, context):
     :type context: Context
     :rtype: CType
     """
-    if children_are(expression, ["unary_operator", 'expression']):
+    if children_are(expression, ['++', 'expression']):
+        return expression_rtype_check(expression[1], context, 'integer')
+    elif children_are(expression, ['--', 'expression']):
+        return expression_rtype_check(expression[1], context, 'integer')
+    elif children_are(expression, ["unary_operator", 'expression']):
         c_type = symtab_expression(expression[2], context)
         return symtab_unary_operator(expression[1], context, c_type)
-    # todo
-    pass
+    elif children_are(expression, ['sizeof', 'expression']):
+        return symtab_expression(expression[2], context).size()
+    elif children_are(expression, ['sizeof', 'type_name']):
+        return symtab_type_name(expression[2], context).size()
+
+
+def symtab_type_name(expression, context):
+    """
+    :type expression: list
+    :type context: Context
+    :rtype: CType
+    """
+    storage_class_specifier, type_qualifier, c_type = \
+        symtab_declaration_specifiers(expression[1])
+    if type_qualifier == 'const':
+        c_type.is_const[-1] = True
+    return symtab_declarator(expression[2], c_type)
+
 
 def symtab_unary_operator(unary_operator, context, c_type):
     """
@@ -717,7 +767,25 @@ def symtab_unary_operator(unary_operator, context, c_type):
         rtype = deepcopy(c_type)
         rtype.is_const.append(True)
         return rtype
-    # todo
+    elif unary_operator[1] == '+':
+        if not c_type.is_number():
+            print_error(repr(c_type) + " cannot apply prefix '+'")
+        return c_type
+    elif unary_operator[1] == '-':
+        if not c_type.is_number():
+            print_error(repr(c_type) + " cannot apply prefix '-'")
+        return c_type
+    elif unary_operator[1] == '~':
+        if not c_type.is_integer():
+            print_error(repr(c_type) + " cannot apply prefix '~'")
+            return c_types['int']
+        return c_type
+    elif unary_operator[1] == '!':
+        if not c_type.is_integer():
+            print_error(repr(c_type) + " cannot apply prefix '!'")
+            return c_types['int']
+        return c_type
+
 
 def symtab_cast_expression(expression, context):
     """
@@ -725,6 +793,7 @@ def symtab_cast_expression(expression, context):
     :type context: Context
     :rtype: CType
     """
+    raise Exception("Not support cast expression")
     # todo
     pass
 
