@@ -431,12 +431,14 @@ def symtab_function_definition(function_definition, context):
 def symtab_compound_statement(compound_statement, context):
     if children_are(compound_statement, ['{', 'statement_list', '}']):
         symtab_statement_list(compound_statement[2], context)
+        return compound_statement
     elif children_are(compound_statement, ['{', 'declaration_list', '}']):
         symtab_declaration_list(compound_statement[2], context)
+        return compound_statement
     elif children_are(compound_statement, ['{', 'declaration_list', 'statement_list', '}']):
         symtab_declaration_list(compound_statement[2], context)
         symtab_statement_list(compound_statement[3], context)
-
+        return compound_statement
 
 #
 
@@ -451,8 +453,15 @@ def symtab_statement_list(statement_list, context):
     :type context: Context
     :return: None
     """
+    after_return = False
     for statement in statement_list[1:]:
         symtab_statement(statement, context)
+        if after_return:
+            statement_list.remove(statement)
+        elif statement[1] is None:
+            statement_list.remove(statement)
+        elif statement[1][0] == 'jump_statement' and statement[1][1] == 'return':
+            after_return = True
 
 
 def symtab_statement(statement, context):
@@ -464,22 +473,21 @@ def symtab_statement(statement, context):
     if statement[1][0] == 'labeled_statement':
         print_error('Not support label.', statement)
         return
-    if statement[1][0] == 'compound_statement':
+    elif statement[1][0] == 'compound_statement':
         # compound_statement = \
         #     TreeNode(statement[1],
         #              context=Context(outer_context=context))
         compound_statement = statement[1]
         compound_statement.context = Context(outer_context=context)
-        statement[1] = compound_statement
-        symtab_compound_statement(compound_statement, compound_statement.context)
+        statement[1] = symtab_compound_statement(compound_statement, compound_statement.context)
 
-    if statement[1][0] == 'expression_statement':
+    elif statement[1][0] == 'expression_statement':
         symtab_expression_statement(statement[1], context)
-    if statement[1][0] == 'selection_statement':
-        symtab_selection_statement(statement[1], context)
-    if statement[1][0] == 'iteration_statement':
+    elif statement[1][0] == 'selection_statement':
+        statement[1] = symtab_selection_statement(statement[1], context)
+    elif statement[1][0] == 'iteration_statement':
         symtab_iteration_statement(statement[1], context)
-    if statement[1][0] == 'jump_statement':
+    elif statement[1][0] == 'jump_statement':
         symtab_jump_statement(statement[1], context)
 
 
@@ -492,12 +500,23 @@ def symtab_selection_statement(selection_statement, context):
     if children_are(selection_statement, ['SWITCH', '(', 'expression', ')', 'statement']):
         print_error('Not support switch statement', selection_statement)
         return
-    if len(selection_statement) >= 6:
-        expression_rtype_check(selection_statement[3], context, 'bool')
-        symtab_statement(selection_statement[5], context)
+
+    rtype = expression_rtype_check(selection_statement[3], context, 'bool')
+    symtab_statement(selection_statement[5], context)
 
     if children_are(selection_statement, ['if', '(', 'expression', ')', 'statement', 'else', 'statement']):
         symtab_statement(selection_statement[7], context)
+
+    if isinstance(rtype, LiteralType) and rtype.is_integer():
+        if rtype.val == 0:
+            if len(selection_statement) > 6:
+                return selection_statement[7][1]
+            else:
+                return None
+        else:
+            return selection_statement[5][1]
+
+    return selection_statement
 
 
 def symtab_iteration_statement(iteration_statement, context):
