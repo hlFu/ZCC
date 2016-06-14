@@ -8,7 +8,7 @@ arithmetic operation; logical operation
 priority
 declaration definition
 array
-increasement
+increment
 preprocessing
 */
 #include "stdio.h"

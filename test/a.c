@@ -1,13 +1,8 @@
 int main(void)
 {
-    int i,j;
-    i=12;
-    if(i==12)
+    int i,j,k,l;
+    for(i;;)
     {
-        j=12;
     }
-    else
-    {
-        j=1;
-    }
+    return 0;
 }

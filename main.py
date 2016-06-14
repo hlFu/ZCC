@@ -17,7 +17,7 @@ if __name__ == '__main__':
     #with open("test/basic.c") as f:
         # with open("test/test1.c") as f:
         #codes = f.read()
-    codes=preprocess(os.path.abspath("test/a.c"))
+    codes=preprocess(os.path.abspath("test/basic.c"))
     pt = parser.parse(codes, lexer=ZCClexer)
     print "errorCounter=", parser.errorCounter
     printAST(pt)
