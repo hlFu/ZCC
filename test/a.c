@@ -1,10 +1,13 @@
-typedef int M;
-int f;
-M j;
 int main(void)
 {
-    int i;
-    i=1+2;
-    i=*i?1:2;
-    return 0;
+    int i,j;
+    i=12;
+    if(i==12)
+    {
+        j=12;
+    }
+    else
+    {
+        j=1;
+    }
 }

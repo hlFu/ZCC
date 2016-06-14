@@ -10,7 +10,10 @@ class generator:
         #asm output list
         self.asm=[]
         self.tools=utility(self)
-    
+        self.expression_handler={
+
+        }
+
     def generate(self):
         ###########################################
         #程序结构
@@ -28,26 +31,70 @@ class generator:
         for funcName in global_context.local:
             value = global_context.local[funcName]
             if(value.type=='function'):
-                self.tools.newFunc(funcName)
-                #这部分就是要解析树并调用tools函数翻译
-                #下面是我乱加的
-                if(key=='main'):
-                    self.tools.add('l_i',1)
-                    self.tools.mov('x1',2)
-                    self.tools.sub('l_i','x1')
-                    self.tools.mov('x2',3)
-                    self.tools.mov('x3',4)
-                    self.tools.call('foo')
-                    returnV='l_i'
-                    self.tools.ret(funcName,returnV)
-                else:
-                    self.tools.mov('x1',2)
-                    self.tools.mov('x2',3)
-                    self.tools.add('x1',1)
-                    self.tools.ret(funcName)
+                if global_context.local[funcName].compound_statement is not None:
+                    # self.tools.newFunc(global_context.local[funcName].compound_statement.context)
+                    self.gen_compound_statement(global_context.local[funcName].compound_statement)
+                    # self.tools.endFunc()
         self.tools.end()
-    
+
     def output(self,fileName):
         with open(fileName,'w') as out:
             for line in self.asm:
                 out.write(line)
+
+    def gen_statement_list(self,node):
+        """
+        :type node:TreeNode
+        """
+        for subnode in node[1:]:
+            if isinstance(subnode,TreeNode):
+                if subnode[0]=="statement":
+                    self.gen_statement(subnode)
+
+    def gen_statement(self,node):
+        """
+        :type node:TreeNode
+        """
+        for subnode in node[1:]:
+            if isinstance(subnode,TreeNode):
+                if subnode[0]=="expression_statement":
+                    self.gen_expression_statement(subnode)
+                elif subnode[0]=="compound_statement":
+                    # self.tools.newScope()
+                    self.gen_compound_statement(subnode)
+                    # self.tools.endScope()
+                elif subnode[0]=="selection_statement":
+                    self.gen_selection_statement(subnode)
+
+
+    def gen_expression_statement(self,node):
+        """
+        :type node:TreeNode
+        """
+        pass
+
+    def gen_compound_statement(self,node):
+        """
+        :type node:TreeNode
+        """
+        for subnode in node[1:]:
+            if isinstance(subnode,TreeNode):
+                if subnode[0]=="statement_list":
+                    self.gen_statement_list(subnode)
+
+    def gen_selection_statement(self,node):
+        """
+        :type node:TreeNode
+        """
+        # node[3]:expression
+        # node[5]:statement
+        # node[7]:statement
+        if node[1]=="if":
+            if len(node)==6:
+                pass
+            elif len(node)==8:
+                pass
+
+
+
+

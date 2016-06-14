@@ -93,7 +93,7 @@ class utility:
             self.gen.asm.append('\tleave\n')
         self.gen.asm.append('\tret\n')
         self.gen.asm.append('\t.size '+funcName+', .-'+funcName+'\n')
-    
+
     def findLast(self,text,word):
         for i in range(0,len(text)):
             index=len(text)-i-1

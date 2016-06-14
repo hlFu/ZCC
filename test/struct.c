@@ -1,6 +1,7 @@
 /*
  * embedded struct
  * member access: direct pointer
+ * typedef
  */
 #include "stdio.h"
 typedef struct
