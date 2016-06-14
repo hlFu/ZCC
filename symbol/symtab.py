@@ -431,14 +431,14 @@ def symtab_function_definition(function_definition, context):
 def symtab_compound_statement(compound_statement, context):
     if children_are(compound_statement, ['{', 'statement_list', '}']):
         symtab_statement_list(compound_statement[2], context)
-        return compound_statement
+        # return compound_statement
     elif children_are(compound_statement, ['{', 'declaration_list', '}']):
         symtab_declaration_list(compound_statement[2], context)
-        return compound_statement
+        # return compound_statement
     elif children_are(compound_statement, ['{', 'declaration_list', 'statement_list', '}']):
         symtab_declaration_list(compound_statement[2], context)
         symtab_statement_list(compound_statement[3], context)
-        return compound_statement
+    return compound_statement
 
 
 #
