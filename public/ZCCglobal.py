@@ -103,6 +103,7 @@ class StructType(CType):
             self.members[member[0]] = member[1]
             self.offset[member[0]] = self.size
             self.size += member[1].size
+            self.size = ((self.size - 1) / 4 + 1) * 4
 
     def __repr__(self):
         return self.__add_star__('struct ' + repr(self.members))
@@ -248,7 +249,7 @@ class LiteralType(CType):
             self.is_const = [True]
         elif isinstance(val, float):
             self.type = 'double'
-            self.size = 4
+            self.size = 8
             self.is_const = [True]
 
 
