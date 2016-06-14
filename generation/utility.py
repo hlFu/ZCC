@@ -10,7 +10,7 @@ class utility:
         # record all map of scope
         self.mapStack=[]
         # global record for register uses
-        self.registers=['ebx','ecx','edx','esi','edi']
+        self.registers={'ebx':0,'ecx':0,'edx':0,'esi':0,'edi':0}
         # all global v
         self.globalV={}
         # all statics v
@@ -28,12 +28,13 @@ class utility:
         self.magicNum=1234
         # record whether reg is modified by func
         self.dirty={'ebx':0,'ecx':0,'edx':0,'esi':0,'edi':0}
-        # record register and memory stack
-        self.tmpStack=[]
         # point to the tmp stack top
-        self.tmpSP=-1
+        self.tmpSP=0
         #use for mark the next reg which will be alternate
         self.randomReg='edx'
+        #tmp Name
+        self.tmpName='__tmp'
+        self.tmpNum=1
         
     def globalInitialize(self):
         self.gen.asm.append('\t.intel_syntax noprefix\n')
@@ -57,14 +58,14 @@ class utility:
         self.gen.asm.append('\t.section .rodata\n')
         self.gen.asm.append('\t.text\n')
     
-    def __parseStruct(self,structName,Struct):
-        V={}
-        for member in Struct.members:
-            if(isinstance(member,StructType)):
-                V.update(self.__parseStruct(member,Struct.members[member]))
-            else:
-                V.update({structName+'.'+member:Struct.members[member]})
-        return V
+    # def __parseStruct(self,structName,Struct):
+    #     V={}
+    #     for member in Struct.members:
+    #         if(isinstance(member,StructType)):
+    #             V.update(self.__parseStruct(member,Struct.members[member]))
+    #         else:
+    #             V.update({structName+'.'+member:Struct.members[member]})
+    #     return V
 
     def end(self):
         self.gen.asm.append('\t.ident	\"GCC: (Ubuntu 4.8.2-19ubuntu1) 4.8.2\"\n')
@@ -80,18 +81,18 @@ class utility:
             value=global_context.local[funcName].compound_statement.context.local[v]
             s_class=value.storage_class
             Type=value.type
-            size=value.size
-            if(Type == 'struct'):
-                st=self.__parseStruct(v,value)
-                for member in st:
-                    Type = st[member].type
-                    if(Type == 'double'):
-                        size=8
-                    else:
-                        size=4
-                    map.update({member:{'reg':0,'type':Type,'addr':'[esp+%.d]'%(offset-size)}})
-                    offset-=size
-                continue
+            size=value.size()
+            # if(Type == 'struct'):
+            #     st=self.__parseStruct(v,value)
+            #     for member in st:
+            #         Type = st[member].type
+            #         if(Type == 'double'):
+            #             size=8
+            #         else:
+            #             size=4
+            #         map.update({member:{'reg':0,'type':Type,'addr':'[esp+%.d]'%(offset-size)}})
+            #         offset-=size
+            #     continue
             if(s_class == 'static'):
                 v=v+'%.d' % self.magicNum
                 self.magicNum+=4
@@ -103,11 +104,11 @@ class utility:
             offset-=size
         for v in self.globalV:
             map.update({v:{'reg':0,'type':self.globalV[v],'addr':v}})
-        self.dirty={'edx':0,'esi':0,'edi':0}
+        self.dirty={'ebx':0,'ecx':0,'edx':0,'esi':0,'edi':0}
         return map
     
     def newFunc(self,funcName):
-        space=32
+        space=64
         self.gen.asm.append('\t.globl '+funcName+'\n')
         self.gen.asm.append('\t.type '+funcName+', @function\n')
         self.gen.asm.append(funcName+':\n')
@@ -115,25 +116,53 @@ class utility:
         self.gen.asm.append('\tmov ebp, esp\n')
         self.gen.asm.append('\tsub esp, %.d\n' % space)
         self.currentMap=self.newMap(funcName)
+        self.tmpSP=4
     
-    def endFunc(self,func):
+    def endFunc(self,funcName):
+        self.gen.asm.append('\t.size '+funcName+', .-'+funcName+'\n')
         pass
     
     def newScope(self,scope):
-        pass
+        self.mapStack.append(self.currentMap)
+        if(isinstance(scope,Context)):
+            for V in scope.local:
+                value=scope.local[v]
+                s_class=value.storage_class
+                Type=value.type
+                size=value.size()
+                if(s_class == 'static'):
+                    v=v+'%.d' % self.magicNum
+                    self.magicNum+=4
+                    map.update({v:{'reg':0,'type':Type,'addr':v}})
+                    self.currentStatic.update({v:Type})
+                    self.statics.update({v:Type})
+                    continue
+                map.update({v:{'reg':0,'type':Type,'addr':'[esp+%.d]'%(offset-size)}})
+                offset-=size
+        return
+
+        raise TypeError("error in newScope!\n")
     
-    def endScope(self,scope):
-        pass
+    def endScope(self):
+        self.currentMap=self.mapStack.pop()
+        
+        return
+
+    def getTrue():
+        return 'true'
+    
+    def getFalse():
+        return 'false'
 
     def ret(self,funcName,returnV=None):
-        for v in self.currentStatic:
-            if(self.currentMap[v]['reg']!=0):
-                self.gen.asm.append('\tmov '+v+', '+self.currentMap[v]['reg'])
-        for v in self.globalV:
-            if(self.currentMap[v]['reg']!=0):
-                self.gen.asm.append('\tmov '+v+', '+self.currentMap[v]['reg'])
-        if(returnV!=None and self.currentMap[returnV]['reg']!='eax' and self.currentMap[returnV]['reg']!=0):
-            self.gen.asm.append('\tmov eax, '+self.currentMap[returnV]['reg'])
+        # for v in self.currentStatic:
+        #     if(self.currentMap[v]['reg']!=0):
+        #         self.gen.asm.append('\tmov '+v+', '+self.currentMap[v]['reg'])
+        # for v in self.globalV:
+        #     if(self.currentMap[v]['reg']!=0):
+        #         self.gen.asm.append('\tmov '+v+', '+self.currentMap[v]['reg'])
+        # if(returnV!=None and self.currentMap[returnV]['reg']!='eax' and self.currentMap[returnV]['reg']!=0):
+        #     self.gen.asm.append('\tmov eax, '+self.currentMap[returnV]['reg'])
         if(funcName=='main'):
             self.gen.asm.append('\tleave\n')
         else:
@@ -144,13 +173,13 @@ class utility:
                     self.gen.asm.append('\tpop '+reg+'\n')
             self.gen.asm.append('\tleave\n')
         self.gen.asm.append('\tret\n')
-        self.gen.asm.append('\t.size '+funcName+', .-'+funcName+'\n')
 
     def findLast(self,text,word):
         for i in range(0,len(text)):
             index=len(text)-i-1
             if(text[index]==word):
                 return index+2
+
         raise NameError(word + ' is not in the list')
     
     def checkIn(self,vName):
@@ -160,19 +189,21 @@ class utility:
             if no free, push back one
             @vName veriable name
         """
-        try:
-            if(self.currentMap[vName]['reg']==0):
-                reg=self.checkFull()
-                if(reg==-1):
-                    reg=self.allocateNewReg()
-                if(self.registers[reg]==1):
-                    self.dirty[reg]=1
-                self.currentMap[vName]['reg']=reg
-                self.registers[reg]=1
-        except Exception,e:
-            print e
-            print vName
-            print self.currentMap
+        # try:
+        #     if(self.currentMap[vName]['reg']==0):
+        #         reg=self.allocateNewReg()
+        #         if(self.registers[reg]==1):
+        #             self.dirty[reg]=1
+        #         self.currentMap[vName]['reg']=reg
+        #         self.registers[reg]=1
+        # except Exception,e:
+        #     print e
+        #     print vName
+        #     print self.currentMap
+        if(self.currentMap[vName]['reg']!=0):
+            return True
+        
+        return False
     
     def checkFull(self):
         """
@@ -181,40 +212,78 @@ class utility:
             if not: return -1
         """
         for reg in self.registers:
-            if(self.registers[reg]==0):
+            if(self.registers['reg']==0):
                 return reg
         return -1
     
-    def allocateNewReg(self):
+    def allocateNewReg(self,Type):
         """
-            push back one reg to get a free space
+            get a new free reg, if full get a mem address
         """
-        self.randomReg=self.findOneReg()
-        for vName in self.currentMap:
-            if(self.currentMap[vName]['reg']==self.randomReg):
-                self.gen.asm.append('\tmov '+vName+', '+self.randomReg+'\n')
-        return self.randomReg
+        if(Type=='double'):
+            return
+        
+        newTmp=self.tmpName+str(self.tmpNum)
+        self.tmpNum+=1
+        reg=checkFull()
+        if(reg!=-1):
+            self.currentMap.update({newTmp:{'reg':reg,'type':Type,'addr':0}})
+        else:
+            self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp-%.d]'%(self.tmpSP)}})
+        
+        return newTmp
+
+
+    def lock(self,name):
+        if(name in self.registers):
+            self.registers[name]=1
+            return
+
+        if(self.currentMap[name]['type']=='double'):
+            self.tmpSP+=8
+        else:
+            self.tmpSP+=4
+        
+        return
     
-    def findOneReg(self):
-        flag=0
-        for reg in self.registers:
-            if(flag==1):
-                return reg
-            else:
-                if(reg==self.randomReg):
-                    flag=1
-        return 'eax'
+    def unLock(self,name):
+        if(name in self.registers):
+            self.registers[name]=0
+            return
+
+        if(self.currentMap[name]['type']=='double'):
+            self.tmpSP-=8
+        else:
+            self.tmpSP-=4
+        
+        self.currentMap.pop(name)
+        
+        return
+    
+    # def findOneReg(self):
+    #     flag=0
+    #     for reg in self.registers:
+    #         if(flag==1):
+    #             return reg
+    #         else:
+    #             if(reg==self.randomReg):
+    #                 flag=1
+    #     return 'eax'
     
     def add(self,x1,x2):
-        self.checkIn(x1)
+        if(isinstance(x1,Data)):
+            x1=x1.name
+        if(isinstance(x2,Data)):
+            x2=x2.name
         #x2 is not a imm
+        if(x1 in self.currentMap and )
         if(isinstance(x2,str)):
             self.checkIn(x2)
             self.gen.asm.append('\tadd '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
         else:
             self.gen.asm.append('\tadd '+self.currentMap[x1]['reg']+', %.d'%x2+'\n')
     
-    def addTmp(self):
+    def addToTmp(self):
         '''
         perform bx=bx+ax
         bx is a tmp reg
@@ -336,10 +405,14 @@ class utility:
         give a label at current place
         mostly use at loop
         """
+        if(label==None):
+            label='.LC%.d'%self.magicNum
+            self.magicNum+=1
         self.gen.asm.append(label+':\n')
     
-    def allocateLabel():
-        pass
+    def allocateLabel(self):
+        
+        return '.LC%.d'%self.magicNum
 
     
     def cmp(self,x1,x2):
