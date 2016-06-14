@@ -10,7 +10,7 @@ if __name__ == '__main__':
     # with open("yyparse/missRightCurly.c") as f:
     # with open("symbol/test.c") as f:
     # with open("symbol/preprocessed.c") as f:
-    with open("test/test9.c") as f:
+    with open("test/a.c") as f:
         # with open("test/test1.c") as f:
         codes = f.read()
         pt = parser.parse(codes, lexer=ZCClexer)
