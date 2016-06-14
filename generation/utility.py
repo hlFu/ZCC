@@ -7,8 +7,10 @@ class utility:
     def __init__(self,Gen):
         self.gen=Gen
         self.currentMap={}
+        # record all map of scope
+        self.mapStack=[]
         # global record for register uses
-        self.registers={'eax':0,'edx':0,'esi':0,'edi':0}
+        self.registers=['ebx','ecx','edx','esi','edi']
         # all global v
         self.globalV={}
         # all statics v
@@ -25,7 +27,11 @@ class utility:
         # postfix of statics
         self.magicNum=1234
         # record whether reg is modified by func
-        self.dirty={'edx':0,'esi':0,'edi':0}
+        self.dirty={'ebx':0,'ecx':0,'edx':0,'esi':0,'edi':0}
+        # record register and memory stack
+        self.tmpStack=[]
+        # point to the tmp stack top
+        self.tmpSP=-1
         #use for mark the next reg which will be alternate
         self.randomReg='edx'
         
@@ -110,6 +116,15 @@ class utility:
         self.gen.asm.append('\tsub esp, %.d\n' % space)
         self.currentMap=self.newMap(funcName)
     
+    def endFunc(self,func):
+        pass
+    
+    def newScope(self,scope):
+        pass
+    
+    def endScope(self,scope):
+        pass
+
     def ret(self,funcName,returnV=None):
         for v in self.currentStatic:
             if(self.currentMap[v]['reg']!=0):
@@ -316,12 +331,16 @@ class utility:
         self.checkIn(x2)
         self.gen.asm.append('\tnot '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
     
-    def markLabel(self,label):
+    def markLabel(self,label=None):
         """
         give a label at current place
         mostly use at loop
         """
         self.gen.asm.append(label+':\n')
+    
+    def allocateLabel():
+        pass
+
     
     def cmp(self,x1,x2):
         if(isinstance(x1,str)):
