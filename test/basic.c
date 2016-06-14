@@ -8,7 +8,7 @@ arithmetic operation; logical operation
 priority
 declaration definition
 array
-increasement
+increment
 preprocessing
 */
 #include "stdio.h"
@@ -21,7 +21,7 @@ int main(int argc,char **argv)
 {
     float f;
     double d;
-    char *s;
+    char *s;                   
 
     s=argv[1];
     while(*s!=0)
@@ -29,7 +29,7 @@ int main(int argc,char **argv)
         if(*s<=LOWERCASE_Z&&*s>=LOWERCASE_A)
             *s=*s+UPPERCASE_A-LOWERCASE_A;
         s++;
-    }
+    }    
     printf("%s\n",argv[1]);
 
     scanf("%d",&n);

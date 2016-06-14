@@ -1,0 +1,24 @@
+	.intel_syntax noprefix
+	.comm a,8,4
+	.section .rodata
+	.text
+	.globl main
+	.type main, @function
+main:
+	push ebp
+	mov ebp, esp
+	sub esp, 32
+	leave
+	ret
+	.size main, .-main
+	.globl foo
+	.type foo, @function
+foo:
+	push ebp
+	mov ebp, esp
+	sub esp, 32
+	leave
+	ret
+	.size foo, .-foo
+	.ident	"GCC: (Ubuntu 4.8.2-19ubuntu1) 4.8.2"
+	.section	.note.GNU-stack,"",@progbits
