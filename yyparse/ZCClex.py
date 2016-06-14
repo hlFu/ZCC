@@ -4,6 +4,7 @@ import ply.lex as lex
 # import ply.yacc as yacc
 # from pprint import pprint
 from symbol.symtab import is_type
+from public.ZCCglobal import TreeNode
 lexErrorInfo = []
 
 
@@ -174,7 +175,11 @@ tokens = (
 
 def t_STRING_LITERAL(t):
     r'\"(\\.|[^\\\"])*\"'
-    t.value = ['STRING', t.value]
+    value = t.value
+    t.value = TreeNode()
+    t.value.lineno = t.lexer.lineno
+    t.value.append('STRING')
+    t.value.append(value)
     return t
 
 
@@ -190,7 +195,11 @@ def t_IDENTIFIER(t):
     if t.type == 'IDENTIFIER' and is_type(t.value):
         t.type = "TYPE_NAME"
     if t.type == 'IDENTIFIER':
-        t.value = ['IDENTIFIER', t.value]
+        value = t.value
+        t.value = TreeNode()
+        t.value.lineno = t.lexer.lineno
+        t.value.append('IDENTIFIER')
+        t.value.append(value)
     return t
 
 
@@ -198,15 +207,27 @@ def t_NUMBER_CONSTANT(t):
     r"""([0-9]*\.[0-9]+|[0-9]+\.)([eE][+\-]?[0-9]+)?[flFL]?|[0-9]+([eE][+\-]?[0-9]+)[flFL]?|[1-9][0-9]*[uU]?[lL]{,2}|0[0-7]*[uU]?[lL]{,2}|0[xX][0-9a-fA-F]+[uU]?[lL]{,2}"""
     val = eval(t.value)
     if isinstance(val, float):
-        t.value = ['DOUBLE', t.value]
+        value = t.value
+        t.value = TreeNode()
+        t.value.lineno = t.lexer.lineno
+        t.value.append('DOUBLE')
+        t.value.append(value)
     else:
-        t.value = ['INTEGER', t.value]
+        value = t.value
+        t.value = TreeNode()
+        t.value.lineno = t.lexer.lineno
+        t.value.append('INTEGER')
+        t.value.append(value)
     return t
 
 
 def t_CHARACTER_CONSTANT(t):
     r"\'([^\'\\\n]|(\\[\'\"?\\abfnrtv]|[0-7]{1,3}|x[0-9a-fA-F]{1,2}))\'"
-    t.value = ['INTEGER', str(ord(eval(t.value)))]
+    value = t.value
+    t.value = TreeNode()
+    t.value.lineno = t.lexer.lineno
+    t.value.append('INTEGER')
+    t.value.append(str(ord(eval(value))))
     return t
 
 

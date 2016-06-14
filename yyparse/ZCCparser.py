@@ -4,7 +4,7 @@ import ply.lex as lex
 import ply.yacc as yacc
 import ZCClex
 from symbol.symtab import symtab_declaration, symtab_function_definition
-from public.ZCCglobal import global_context
+from public.ZCCglobal import global_context, TreeNode
 from ZCClex import tokens
 from pprint import pprint
 
@@ -17,7 +17,7 @@ def handleMissingSEMI(p, parentname="", checkPair=()):
             checkPair[0]] == checkPair[1])) and p[last_idx] != ';':
         print(
             "Error type: missing semicolon before %s. at line: %d, lex pos: %d in %s.\n" %
-            (p[last_idx], p.lineno(last_idx), p.lexpos(last_idx), parentname))
+            (p[last_idx].value, p.lineno(last_idx), p.lexpos(last_idx), parentname))
         p[last_idx] = ';'
         parser.errorCounter = 0
         parser.errok()
@@ -48,12 +48,19 @@ def handleErrorID(p, idx):
 
 
 def construct_node(p, parent_name, del_list=[]):
-    p[0] = [parent_name]
+    p[0] = TreeNode()
+    p[0].append(parent_name)
+    p[0].lineno = p.lineno(len(p) - 1)
     #    print("%s's del_list: " % (parent_name))
     #    print(del_list)
     for i in range(1, len(p)):
         if i not in del_list:
             p[0].append(p[i])
+            if not isinstance(p[i], str):
+                if p[0].lineno == 0:
+                    p[0].lineno = p[i].lineno
+                elif p[0].lineno > p[i].lineno:
+                    p[0].lineno = p[i].lineno
 
 
 def p_outer_translation_unit(p):
@@ -179,7 +186,8 @@ def p_argument_expression_list(p):
     if len(p) == 2:
         construct_node(p, "argument_expression_list")
     else:
-        p[1].append(p[2:])
+        p[1].append(p[2])
+        p[1].append(p[3])
         p[0] = p[1]
 
 
@@ -442,7 +450,7 @@ conditional_expression : logical_or_expression
     if len(p) == 2:
         p[0] = p[1]
     else:
-        construct_node(p, "cnditional_expression")
+        construct_node(p, "conditional_expression")
 
 
 def p_assignment_expression(p):
@@ -974,7 +982,7 @@ def p_error(p):
     print("Syntax error at %r, at line: %d, column: %d." % (
         p.value, p.lexer.lineno, ZCClex.find_column(p.lexer.lexdata, p)))
     if p.type == 'IDENTIFIER':
-        print("Undefined Type " + p.value)
+        print("Undefined Type " + p.value[1])
 
     if parser.errorCounter > 0:
         print("In panic mode\n")
@@ -990,13 +998,16 @@ def p_error(p):
 
 def printAST(p, n=0):
     if p is not None:
-        print(' |' * n, end='-')
         # if type(p) is list:
-        if isinstance(p, list):
+        if len(p) > 0 and not isinstance(p, str):
+            print('line:%02d' % p.lineno, end='')
+            print(' |' * n, end='-')
             print(p[0])
             for node in p[1:]:
                 printAST(node, n + 1)
         else:
+            print('line:xx', end='')
+            print(' |' * n, end='-')
             print(p)
 
 

@@ -316,24 +316,35 @@ global_context = GlobalContext()
 error = [False]
 
 
-class TreeNode(object):
-    def __init__(self, ast, **kwargs):
+class TreeNode(list):
+    def __init__(self, lineno=-1):
         """
-        :type ast: list[list]
         :return:
         """
-        self.ast = ast  # type: list[list]
-        for key in kwargs:
-            self.__setattr__(key, kwargs[key])
+        self.lineno = lineno  # type: int
+        # self.ast = self  # type: # list[list]
 
-    def __getitem__(self, item):
-        return self.ast.__getitem__(item)
 
-    def __setitem__(self, key, value):
-        self.ast.__setitem__(key, value)
+# class LeafNode(str):
+#     def __init__(self, lineno=-1):
+#         """
+#         :return:
+#         """
+#         self.lineno = lineno  # type: int
 
-    def __len__(self):
-        return self.ast.__len__()
+
+# self.ast = ast  # type: list[list]
+#     for key in kwargs:
+#         self.__setattr__(key, kwargs[key])
+#
+# def __getitem__(self, item):
+#     return self.ast.__getitem__(item)
+#
+# def __setitem__(self, key, value):
+#     self.ast.__setitem__(key, value)
+#
+# def __len__(self):
+#     return self.ast.__len__()
 
 
 def has_same_members(struct_type1, struct_type2):
