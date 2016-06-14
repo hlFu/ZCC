@@ -173,7 +173,7 @@ class utility:
                     self.gen.asm.append('\tpop '+reg+'\n')
             self.gen.asm.append('\tleave\n')
         self.gen.asm.append('\tret\n')
-    
+
     def findLast(self,text,word):
         for i in range(0,len(text)):
             index=len(text)-i-1

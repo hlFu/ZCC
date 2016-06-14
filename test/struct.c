@@ -1,6 +1,7 @@
 /*
  * embedded struct
  * member access: direct pointer
+ * typedef
  */
 #include "stdio.h"
 typedef struct
@@ -21,6 +22,7 @@ void printStruct(myStruct* s)
 int main(void)
 {
     myStruct s;
+
     s.a=2;
     s.c='a';
     s.inner.b=3;
