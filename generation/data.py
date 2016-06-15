@@ -6,7 +6,7 @@ class Data(object):
     def __init__(self,name,offset,type):
         """
         :type name:str
-        :type offset:int
+        :type offset:bool
         :type type:CType
         """
         self.name=name
