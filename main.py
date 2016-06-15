@@ -23,4 +23,4 @@ if __name__ == '__main__':
     # printAST(global_context.local['main'].compound_statement.ast)
     gen = generator()
     gen.generate()
-    gen.output('test/out.txt')
+    gen.output('test/out.s')
