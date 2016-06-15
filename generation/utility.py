@@ -627,10 +627,12 @@ class utility:
         return '.LC%.d'%self.magicNum
 
     def lea(self,x):
+        if(isinstance(x,Data)):
+            xaddr=self.getAbsoluteAdd(x)
         if(x in self.registers):
             self.gen.asm.append('\tlea '+'eax '+'['+x+']'+'\n')
         else:
-            self.gen.asm.append('\tlea '+'eax '+x+'\n')
+            self.gen.asm.append('\tlea '+'eax '+xaddr+'\n')
     
     def cmp(self,x1,x2):
         if(isinstance(x1,Data)):
