@@ -129,6 +129,7 @@ class utility:
     
 
     def endFunc(self):
+        self.showMap()
         self.gen.asm.append('\t.size '+self.funcName+', .-'+self.funcName+'\n')
         pass
     
@@ -233,6 +234,7 @@ class utility:
             strAddr=self.currentMap[data.name]['addr'][:index]+'+eax+'+self.currentMap[data.name]['addr'][index:]
             return strAddr
         
+        print(data.name)
         return self.currentMap[data.name]['addr']
         
     
@@ -441,14 +443,18 @@ class utility:
         return returnSpace  
 
     def mov(self,x1,x2):
+        print(x1,x2)
+        print('##########################\n')
+        l1=None
+        l2=None
         if(isinstance(x1,Data)):
             x1addr=self.getAbsoluteAdd(x1)
-            x1=x1.name
+            l1=x1.name
         if(isinstance(x2,Data)):
             x2addr=self.getAbsoluteAdd(x2)
-            x2=x2.name
+            l2=x2.name
 
-        if(x1 in self.currentMap and x2 in self.currentMap):
+        if(l1 in self.currentMap and l2 in self.currentMap):
             self.gen.asm.append("\tmov eax, "+x2addr+'\n')
             self.gen.asm.append("\tmov "+x2addr+' eax'+'\n')
         elif(isinstance(x2,Data)):
@@ -456,12 +462,13 @@ class utility:
             self.gen.asm.append('\tmov '+x1+', '+x2addr+'\n')
         elif(isinstance(x1,Data)):
             if(isinstance(x2,int)):
-                self.gen.asm.append('\tmov '+x1addr+', %.d'%x2+'\n')
+                self.gen.asm.append('\tmov '+x1addr+', %d'%x2+'\n')
             else:
+                print(x1addr)
                 self.gen.asm.append('\tmov '+x1addr+', '+x2+'\n')
         else:
             if(isinstance(x2,int)):
-                self.gen.asm.append('\tmov '+x1+', %.d'%x2+'\n')
+                self.gen.asm.append('\tmov '+x1+', %d'%x2+'\n')
             else:
                 self.gen.asm.append('\tmov '+x1+', '+x2+'\n')
         return x1
