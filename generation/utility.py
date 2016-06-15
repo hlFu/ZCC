@@ -27,7 +27,7 @@ class utility:
         # has form of {num, label}
         self.doubles={}
         # postfix of statics
-        self.magicNum=1234
+        self.magicNum=0
         # record whether reg is modified by func
         self.dirty={'ebx':0,'ecx':0,'edx':0,'esi':0,'edi':0}
         # point to the tmp stack top
@@ -37,6 +37,8 @@ class utility:
         #tmp Name
         self.tmpName='__tmp'
         self.tmpNum=1
+        self.constName='.LC'
+        self.constMap={}
         self.callOffset=0
         self.funcName=None
 
@@ -62,6 +64,11 @@ class utility:
                 self.gen.asm.append('\t.comm '+key+',%.d,4\n' %(value.size))
         self.gen.asm.append('\t.section .rodata\n')
         self.gen.asm.append('\t.text\n')
+
+        #get const string and double
+        for v in global_context.literal:
+            self.constMap.update({v:self.constMap+str(self.magicNum)})
+            self.magicNum+=1
     
     # def __parseStruct(self,structName,Struct):
     #     V={}
@@ -82,7 +89,7 @@ class utility:
     def newMap(self,funcName,space=32,reserve=0):
         offset=space-reserve
         map={}
-        map.update({0:{'reg':0,'type':Type,'addr':0}})
+        map.update({0:{'reg':0,'type':None,'addr':0}})
         for v in global_context.local[funcName].compound_statement.context.local:
             value=global_context.local[funcName].compound_statement.context.local[v]
             s_class=value.storage_class
@@ -446,8 +453,6 @@ class utility:
         return returnSpace  
 
     def mov(self,x1,x2):
-        print(x1,x2)
-        print('##########################\n')
         l1=None
         l2=None
         if(isinstance(x1,Data)):
@@ -461,7 +466,6 @@ class utility:
             self.gen.asm.append("\tmov eax, "+x2addr+'\n')
             self.gen.asm.append("\tmov "+x2addr+' eax'+'\n')
         elif(isinstance(x2,Data)):
-            print(x2)
             self.gen.asm.append('\tmov '+x1+', '+x2addr+'\n')
         elif(isinstance(x1,Data)):
             if(isinstance(x2,int)):
@@ -480,35 +484,43 @@ class utility:
             if(para in self.registers):
                 self.gen.asm.append('\tmov BYTE DWORD '+'[esp+%.d], '%self.callOffset+' eax')
                 return
-
-            Type=para.type
-            if(Type=='char'):
-                self.gen.asm.append('\tmov BYTE PTR '+"eax"+self.currentMap[para.name]['addr'])
-                self.gen.asm.append('\tmov BYTE PTR '+'[esp+%.d], '%self.callOffset+' eax')
-                self.callOffset+=4
-            elif(Type=='short'):
-                self.gen.asm.append('\tmov WORD PTR '+"eax"+self.currentMap[para.name]['addr'])
-                self.gen.asm.append('\tmov WORD PTR '+'[esp+%.d], '%self.callOffset+' eax')
-                self.callOffset+=4
-            elif(Type=='int'):
-                self.gen.asm.append('\tmov DWORD PTR '+"eax"+self.currentMap[para.name]['addr'])
-                self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '%self.callOffset+' eax')
-                self.callOffset+=4
-            elif(Type=='const int'):
-                source=int(para)
-                self.callOffset+=4
-            elif(Type=='const char'):
-                source=char(para)
-            elif(Type=='struct'):
-                for i in range(0,para.size/4+1):
-                    base=int(re.findall('[1-9]+',self.currentMap[para.name]['addr'])[0])
-                    addr=i*4+base
-                    strAddr=self.currentMap[para.name]['addr'].replace(str(base),str(addr))
-                    self.gen.asm.append('\tmov DWORD PTR '+"eax, "+strAddr+'\n')
+            if(isinstance(para,Data)):
+                Type=para.type
+                if(Type=='char'):
+                    self.gen.asm.append('\tmov BYTE PTR '+"eax"+self.currentMap[para.name]['addr'])
+                    self.gen.asm.append('\tmov BYTE PTR '+'[esp+%.d], '%self.callOffset+' eax')
+                    self.callOffset+=4
+                elif(Type=='short'):
+                    self.gen.asm.append('\tmov WORD PTR '+"eax"+self.currentMap[para.name]['addr'])
+                    self.gen.asm.append('\tmov WORD PTR '+'[esp+%.d], '%self.callOffset+' eax')
+                    self.callOffset+=4
+                elif(Type=='int'):
+                    self.gen.asm.append('\tmov DWORD PTR '+"eax"+self.currentMap[para.name]['addr'])
                     self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '%self.callOffset+' eax')
                     self.callOffset+=4
+                elif(Type=='const int'):
+                    source=int(para)
+                    self.callOffset+=4
+                elif(Type=='const char'):
+                    source=char(para)
+                elif(Type=='struct'):
+                    for i in range(0,para.size/4+1):
+                        base=int(re.findall('[1-9]+',self.currentMap[para.name]['addr'])[0])
+                        addr=i*4+base
+                        strAddr=self.currentMap[para.name]['addr'].replace(str(base),str(addr))
+                        self.gen.asm.append('\tmov DWORD PTR '+"eax, "+strAddr+'\n')
+                        self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '%self.callOffset+' eax')
+                        self.callOffset+=4
+                else:
+                    raise TypeError("error in passPara")
             else:
-                raise TypeError("error in passPara")
+                if(isinstance(para,str)):
+                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '+self.constMap[para])
+                    self.callOffset+=4
+                elif(isinstance(para,float)):
+                    pass
+                else:
+                    raise TypeError('error in passPara\n')
             
             return
             
@@ -647,6 +659,7 @@ class utility:
         self.gen.asm.append(label+':\n')
     
     def allocateLabel(self):
+        self.magicNum+=1
         return '.LC%.d'%self.magicNum
 
     def lea(self,x):
@@ -656,6 +669,7 @@ class utility:
             self.gen.asm.append('\tlea '+'eax '+'['+x+']'+'\n')
         else:
             self.gen.asm.append('\tlea '+'eax '+xaddr+'\n')
+        return 'eax'
     
     def cmp(self,x1,x2):
         if(isinstance(x1,Data)):
