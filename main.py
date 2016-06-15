@@ -13,16 +13,6 @@ def preprocess(source):
 
 
 if __name__ == '__main__':
-    # with open("yyparse/missSEMI.c") as f:
-    # with open("yyparse/missRightCurly.c") as f:
-    # with open("symbol/test.c") as f:
-    # with open("symbol/preprocessed.c") as f:
-    # with open("test/basic.c") as f:
-    # with open("test/test1.c") as f:
-    # codes = f.read()
-    # codes = preprocess(os.path.abspath("symbol/HelloWorld.c"))
-    # print codes
-    # codes = open("symbol/HelloWorld.c").read()
     codes = preprocess(os.path.abspath("test/a.c"))
     pt = parser.parse(codes, lexer=ZCClexer)
     # print "errorCounter=", parser.errorCounter
