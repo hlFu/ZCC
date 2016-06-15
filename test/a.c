@@ -1,6 +1,6 @@
 int main(void)
 {
-    int i;
-    int *j;
-    i=*j;
+    int i,j;
+    j=j+1;
+
 }

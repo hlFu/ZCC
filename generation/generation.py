@@ -226,7 +226,6 @@ class generator:
                     self.tools.passPara(list[0])
                     if list[1]==True:
                         self.tools.unLock(list[0])
-
             ret=self.tools.call(operend)
             return ret
         elif node[2]==".":
