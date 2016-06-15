@@ -212,7 +212,8 @@ class generator:
             if isinstance(node[3],TreeNode):
                 argument_expression_list=node[3]
                 real_arg_list=[]
-                for argument_expression in argument_expression_list:
+                for argument_expression in argument_expression_list[1:]:
+                    if isinstance(argument_expression,TreeNode):
                         argument=self.expression_handler[argument_expression[0]](argument_expression,context)
                         if argument==self.tools.getEax():
                             tmp=self.tools.allocateNewReg()
