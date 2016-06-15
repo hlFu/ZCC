@@ -114,26 +114,44 @@ class generator:
         # node[3]:expression
         # node[5]:statement
         # node[7]:statement
-        self.expression_handler[node[3][0]](node[3],context)
         if node[1] == "if":
+            ret=self.expression_handler[node[3][0]](node[3],context)
             if len(node) == 6:
-                pass
+                label1=self.tools.allocateLabel()
+                self.tools.cmp(ret,self.tools.getFalse())
+                self.tools.je(label1)
+                self.gen_statement(node[5],context)
+                self.tools.markLable(label1)
             elif len(node) == 8:
-                pass
+                label1=self.tools.allocateLabel()
+                label2=self.tools.allocateLabel()
+                self.tools.cmp(ret,self.tools.getFalse())
+                self.tools.je(label1)
+                self.gen_statement(node[5],context)
+                self.tools.jmp(label2)
+                self.tools.markLable(label1)
+                self.gen_statement(node[7],context)
+                self.tools.markLable(label2)
 
     def gen_jump_statement(self,node,context):
         """
         :type node:TreeNode
         :type context:Context
         """
-        pass
+        if isinstance(node[2],TreeNode):
+            ret=self.expression_handler[node[2][0]](node[2])
+            self.tools.mov(self.tools.getEax(),ret)
+        self.tools.ret()
 
     def gen_iteration_statement(self,node,context):
         """
         :type node:TreeNode
         :type context:Context
         """
-        pass
+        if node[1]=="for":
+            pass
+        elif node[1]=="while":
+            pass
 
 
     def gen_additive_expression(self, node,context):
@@ -187,9 +205,8 @@ class generator:
         elif node[2]=="(":
             if isinstance(node[3],TreeNode):
                 argument_expression_list=node[3]
-                real_arg_list=list()
+                real_arg_list=[]
                 for argument_expression in argument_expression_list:
-                    if isinstance(argument_expression,TreeNode):
                         argument=self.expression_handler[argument_expression[0]](argument_expression,context)
                         if argument==self.tools.getEax():
                             tmp=self.tools.allocateNewReg()
@@ -310,6 +327,21 @@ class generator:
         :type context:Context
         :rtype: str
         """
+        label_out=self.tools.allocateLabel()
+        op1=self.expression_handler[node[1][0]](node[1],context)
+        tmp=self.tools.allocateNewReg()
+        self.tools.lock(tmp)
+        self.tools.mov(tmp,op1)
+        op2=self.expression_handler[node[3][0]](node[3],context)
+        cmp(tmp,op2)
+        if node[2]=="<":
+            pass
+        elif node[2]==">":
+            pass
+        elif node[2]=="<=":
+            pass
+        elif node[2]==">=":
+            pass
         pass
 
     def gen_equality_expression(self,node,context):
