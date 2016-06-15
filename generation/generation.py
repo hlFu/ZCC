@@ -200,14 +200,14 @@ class generator:
         :type context:Context
         :rtype: str
         """
-        operend=self.expression_handler[node[1][0]](node[1],context)
+        operand=self.expression_handler[node[1][0]](node[1],context)
         if node[2]=="[":
 
             index=self.expression_handler[node[3][0]](node[3],context)
-            self.tools.mul(index,operend.type.member_type.size())
-            operend.offset=True
-            operend.type=operend.type.member_type
-            return operend
+            self.tools.mul(index,operand.type.member_type.size())
+            operand.offset=True
+            operand.type=operand.type.member_type
+            return operand
         elif node[2]=="(":
             if isinstance(node[3],TreeNode):
                 argument_expression_list=node[3]
@@ -226,21 +226,20 @@ class generator:
                     self.tools.passPara(list[0])
                     if list[1]==True:
                         self.tools.unLock(list[0])
-
-            ret=self.tools.call(operend)
+            ret=self.tools.call(operand)
             return ret
         elif node[2]==".":
             member=node[3][2]
-            self.tools.add(self.tools.getEax(),operend.type.offset[member])
-            operend.type=operend.type.members[member]
-            operend.offset=True
-            return operend
+            self.tools.add(self.tools.getEax(),operand.type.offset[member])
+            operand.type=operand.type.members[member]
+            operand.offset=True
+            return operand
         elif node[2]=="->":
             member=node[3][2]
-            self.tools.add(self.tools.getEax(),operend.type.offset[member])
-            operend.type=operend.type.members[member]
-            operend.offset=True
-            return operend
+            self.tools.add(self.tools.getEax(),operand.type.offset[member])
+            operand.type=operand.type.members[member]
+            operand.offset=True
+            return operand
 
 
     def gen_unary_expression(self,node,context):
@@ -249,28 +248,28 @@ class generator:
         :type context:Context
         :rtype: str
         """
-        operend=self.expression_handler[node[2][0]](node[2],context)
+        operand=self.expression_handler[node[2][0]](node[2],context)
         if isinstance(node[1],TreeNode):
             operator=self.gen_unary_operator(node[1],context)
             if operator=="&":
-                if isinstance(operend,Data):
-                    ret=self.tools.lea(operend)
-                    operend.type.is_const.append(False)
+                if isinstance(operand,Data):
+                    ret=self.tools.lea(operand)
+                    operand.type.is_const.append(False)
                     return ret
             elif operator=="*":
-                if isinstance(operend,Data):
-                    self.tools.mov(self.tools.getEax,operend)
-                    operend.name=self.tools.getNull()
-                    operend.offset=True
-                    operend.type.is_const.pop()
-                    return operend
+                if isinstance(operand,Data):
+                    self.tools.mov(self.tools.getEax,operand)
+                    operand.name=self.tools.getNull()
+                    operand.offset=True
+                    operand.type.is_const.pop()
+                    return operand
         else:
             if node[1]=="++":
-                self.tools.add(operend,1)
-                return operend
+                self.tools.add(operand,1)
+                return operand
             elif node[1]=="--":
-                self.tools.sub(operend,1)
-                return operend
+                self.tools.sub(operand,1)
+                return operand
 
 
     def gen_cast_expression(self,node,context):
