@@ -1,5 +1,4 @@
 	.intel_syntax noprefix
-	.comm a,8,4
 	.section .rodata
 	.text
 	.globl main
@@ -7,18 +6,16 @@
 main:
 	push ebp
 	mov ebp, esp
-	sub esp, 32
-	leave
-	ret
+	sub esp, 64
+	mov edx, 1
+	mov eax, 0
+	mov [esp+28], edx
+	mov eax, 0
+	mov edx, [esp+24]
+	add eax, None
+	mov edx, eax
+	mov eax, 0
+	mov [esp+24], edx
 	.size main, .-main
-	.globl foo
-	.type foo, @function
-foo:
-	push ebp
-	mov ebp, esp
-	sub esp, 32
-	leave
-	ret
-	.size foo, .-foo
 	.ident	"GCC: (Ubuntu 4.8.2-19ubuntu1) 4.8.2"
 	.section	.note.GNU-stack,"",@progbits

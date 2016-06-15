@@ -82,7 +82,7 @@ class utility:
     def newMap(self,funcName,space=32,reserve=0):
         offset=space-reserve
         map={}
-        print(funcName)
+        map.update({0:{'reg':0,'type':Type,'addr':0}})
         for v in global_context.local[funcName].compound_statement.context.local:
             value=global_context.local[funcName].compound_statement.context.local[v]
             s_class=value.storage_class
@@ -229,12 +229,13 @@ class utility:
 
     def getAbsoluteAdd(self,data):
         # base=int(re.findall('[1-9]+',self.currentMap[data.name]['addr'])[0])
+        if(data.name==0):
+            return '[eax]'
         if(data.offset):
             index=self.currentMap[data.name]['addr'].find('p')+1
             strAddr=self.currentMap[data.name]['addr'][:index]+'+eax+'+self.currentMap[data.name]['addr'][index:]
             return strAddr
         
-        print(data.name)
         return self.currentMap[data.name]['addr']
         
     
@@ -308,6 +309,8 @@ class utility:
     #     return 'eax'
     
     def add(self,x1,x2):
+        y1=None
+        y2=None
         if(isinstance(x1,Data)):
             y1addr=self.getAbsoluteAdd(x1)
             y1=x1.name
