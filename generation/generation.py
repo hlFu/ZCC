@@ -42,10 +42,10 @@ class generator:
             if(value.type == 'function'):
                 if global_context.local[
                         funcName].compound_statement is not None:
-                    # self.tools.newFunc(funcName)
+                    self.tools.newFunc(funcName)
                     self.gen_compound_statement(
                         global_context.local[funcName].compound_statement,global_context.local[funcName].compound_statement.context)
-                    # self.tools.endFunc()
+                    self.tools.endFunc()
         self.tools.end()
 
     def output(self, fileName):
@@ -182,11 +182,17 @@ class generator:
             if node[1][0]=="IDENTIFIER":
                 name=node[1][1]
                 offset=False
-                self.tools.mov(self.tools.getEax(),"0")
+                self.tools.mov(self.tools.getEax(),0)
                 type=deepcopy(context.get_type_by_id(name))
                 return Data(name,offset,type)
             else:
-                return node[1][1]
+                if node[1][0]=="INTEGER":
+                    return int(node[1][1])
+                elif node[1][0]=="DOUBLE":
+                    return float(node[1][1])
+                elif node[1][0]=="STRING":
+                    return str(node[1][1]) 
+
 
     def gen_postfix_expression(self,node,context):
         """
@@ -259,10 +265,10 @@ class generator:
                     return operend
         else:
             if node[1]=="++":
-                self.tools.add(operend,"1")
+                self.tools.add(operend,1)
                 return operend
             elif node[1]=="--":
-                self.tools.sub(operend,"1")
+                self.tools.sub(operend,1)
                 return operend
 
 
@@ -451,7 +457,7 @@ class generator:
         self.tools.lock(tmp)
         self.tools.mov(tmp,right)
         left=self.expression_handler[node[1][0]](node[1],context)
-
+        print(left)
         if operator=="=":
             self.tools.mov(left,tmp)
         self.tools.unLock(tmp)

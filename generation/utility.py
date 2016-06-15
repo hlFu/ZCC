@@ -3,6 +3,7 @@ import re
 import sys
 sys.path.append('c:\\zcc\\zcc')
 from public.ZCCglobal import *
+from data import Data
 
 class utility:
     def __init__(self,Gen):
@@ -221,17 +222,21 @@ class utility:
             if not: return -1
         """
         for reg in self.registers:
-            if(self.registers['reg']==0):
+            if(self.registers[reg]==0):
                 return reg
         return -1
 
     def getAbsoluteAdd(self,data):
-        base=int(re.findall('[1-9]+',self.currentMap[data.name]['addr'])[0])
-        addr=data.offset+base
-        strAddr=self.currentMap[data.name]['addr'].replace(str(base),str(addr))
-        return strAddr
+        # base=int(re.findall('[1-9]+',self.currentMap[data.name]['addr'])[0])
+        if(data.offset):
+            index=self.currentMap[data.name]['addr'].find('p')+1
+            strAddr=self.currentMap[data.name]['addr'][:index]+'+eax+'+self.currentMap[data.name]['addr'][index:]
+            return strAddr
+        
+        return self.currentMap[data.name]['addr']
+        
     
-    def allocateNewReg(self,vName):
+    def allocateNewReg(self,vName=1):
         """
             get a new free reg, if full get a mem address
         """
@@ -443,14 +448,22 @@ class utility:
             x2addr=self.getAbsoluteAdd(x2)
             x2=x2.name
 
-        #x2 is not a imm
         if(x1 in self.currentMap and x2 in self.currentMap):
             self.gen.asm.append("\tmov eax, "+x2addr+'\n')
             self.gen.asm.append("\tmov "+x2addr+' eax'+'\n')
-        elif(isinstance(x2,str)):
+        elif(isinstance(x2,Data)):
+            print(x2)
             self.gen.asm.append('\tmov '+x1+', '+x2addr+'\n')
+        elif(isinstance(x1,Data)):
+            if(isinstance(x2,int)):
+                self.gen.asm.append('\tmov '+x1addr+', %.d'%x2+'\n')
+            else:
+                self.gen.asm.append('\tmov '+x1addr+', '+x2+'\n')
         else:
-            self.gen.asm.append('\tmov '+x1+', %.d'%x2+'\n')
+            if(isinstance(x2,int)):
+                self.gen.asm.append('\tmov '+x1+', %.d'%x2+'\n')
+            else:
+                self.gen.asm.append('\tmov '+x1+', '+x2+'\n')
         return x1
         
     def passPara(self,para):
