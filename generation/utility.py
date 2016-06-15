@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import re
 import sys
 sys.path.append('c:\\zcc\\zcc')
 from public.ZCCglobal import *
@@ -36,6 +37,7 @@ class utility:
         self.tmpName='__tmp'
         self.tmpNum=1
         self.callOffset=0
+        self.funcName=None
 
         
     def globalInitialize(self):
@@ -79,11 +81,13 @@ class utility:
     def newMap(self,funcName,space=32,reserve=0):
         offset=space-reserve
         map={}
+        print(funcName)
         for v in global_context.local[funcName].compound_statement.context.local:
             value=global_context.local[funcName].compound_statement.context.local[v]
             s_class=value.storage_class
             Type=value.type
-            size=value.size()
+            print(type(value))
+            size=value.Size()
             # if(Type == 'struct'):
             #     st=self.__parseStruct(v,value)
             #     for member in st:
@@ -111,6 +115,7 @@ class utility:
     
     def newFunc(self,funcName):
         space=64
+        self.funcName=funcName
         self.gen.asm.append('\t.globl '+funcName+'\n')
         self.gen.asm.append('\t.type '+funcName+', @function\n')
         self.gen.asm.append(funcName+':\n')
@@ -119,9 +124,11 @@ class utility:
         self.gen.asm.append('\tsub esp, %.d\n' % space)
         self.currentMap=self.newMap(funcName)
         self.tmpSP=4
+        print("ok~~~")
     
-    def endFunc(self,funcName):
-        self.gen.asm.append('\t.size '+funcName+', .-'+funcName+'\n')
+
+    def endFunc(self):
+        self.gen.asm.append('\t.size '+self.funcName+', .-'+self.funcName+'\n')
         pass
     
     def newScope(self,scope):
@@ -156,7 +163,7 @@ class utility:
     def getFalse():
         return 'false'
 
-    def ret(self,funcName,returnV=None):
+    def ret(self,returnV=None):
         # for v in self.currentStatic:
         #     if(self.currentMap[v]['reg']!=0):
         #         self.gen.asm.append('\tmov '+v+', '+self.currentMap[v]['reg'])
@@ -217,17 +224,37 @@ class utility:
             if(self.registers['reg']==0):
                 return reg
         return -1
+
+    def getAbsoluteAdd(self,data):
+        base=int(re.findall('[1-9]+',self.currentMap[data.name]['addr'])[0])
+        addr=data.offset+base
+        strAddr=self.currentMap[data.name]['addr'].replace(str(base),str(addr))
+        return strAddr
     
-    def allocateNewReg(self,Type):
+    def allocateNewReg(self,vName):
         """
             get a new free reg, if full get a mem address
         """
+        if(vName in self.currentMap):
+            Type=self.currentMap[vName]['Type']
+        elif(isinstance(vName,str)):
+            if(vName=='eax'):
+                Type='int'
+            else:
+                Type='double'
+        elif(isinstance(vName,int)):
+            Type='int'
+        elif(isinstance(vName,float)):
+            Type='double'
+        else:
+            raise TypeError("error in allocateNewReg\n")
+
         if(Type=='double'):
             return
         
         newTmp=self.tmpName+str(self.tmpNum)
         self.tmpNum+=1
-        reg=checkFull()
+        reg=self.checkFull()
         if(reg!=-1):
             self.currentMap.update({newTmp:{'reg':reg,'type':Type,'addr':0}})
             return reg
@@ -275,24 +302,31 @@ class utility:
     
     def add(self,x1,x2):
         if(isinstance(x1,Data)):
-            x1=x1.name
+            y1addr=self.getAbsoluteAdd(x1)
+            y1=x1.name
         if(isinstance(x2,Data)):
-            x2=x2.name
+            y2addr=self.getAbsoluteAdd(x2)
+            y2=x2.name
         #x2 is not a imm
         if(x2=='eax'):
-            y1=x2
-            y2=x1
-        if(y1 in self.currentMap and y2 on self.currentMap):
-            self.gen.asm.append("\tmov eax, "+self.currentMap[y1]['addr']+'\n')
-            self.gen.asm.append("\tadd eax, "+self.currentMap[y2]['addr']+'\n')
+            tmp=y1
+            y1=y2
+            y2=tmp
+            tmp=y1addr
+            y1addr=y2addr
+            y2addr=tmp  
+
+        if(y1 in self.currentMap and y2 in self.currentMap):
+            self.gen.asm.append("\tmov eax, "+y1addr+'\n')
+            self.gen.asm.append("\tadd eax, "+y2addr+'\n')
         elif(isinstance(y2,str)):
             if(y2 in self.currentMap):
-                self.gen.asm.append('\tadd eax, '+self.currentMap[y2]['addr']+'\n')
+                self.gen.asm.append('\tadd eax, '+y2addr+'\n')
             else:
                 self.gen.asm.append('\tadd eax, '+y2+'\n')
         else:
             if(y2 in self.currentMap):
-                self.gen.asm.append("\tmov eax, "+self.currentMap[y1]['addr']+'\n')
+                self.gen.asm.append("\tmov eax, "+y1addr+'\n')
             self.gen.asm.append("\tadd eax, "+str(y2)+'\n')
         return 'eax'
     
@@ -306,24 +340,26 @@ class utility:
     
     def sub(self,x1,x2):
         if(isinstance(x1,Data)):
+            x1addr=self.getAbsoluteAdd(x1)
             x1=x1.name
         if(isinstance(x2,Data)):
+            x2addr=self.getAbsoluteAdd(x2)
             x2=x2.name
         #x2 is not a imm
         if(x2=='eax'):
             self.gen.asm.append("\tsub "+x1+', '+'eax'+'\n')
             self.gen.asm.append('\tmov eax, '+x1+'\n')
-        if(x1 in self.currentMap and x2 on self.currentMap):
-            self.gen.asm.append("\tmov eax, "+self.currentMap[x1]['addr']+'\n')
-            self.gen.asm.append("\tsub eax, "+self.currentMap[x2]['addr']+'\n')
+        if(x1 in self.currentMap and x2 in self.currentMap):
+            self.gen.asm.append("\tmov eax, "+x1addr+'\n')
+            self.gen.asm.append("\tsub eax, "+x2addr+'\n')
         elif(isinstance(x2,str)):
             if(x2 in self.currentMap):
-                self.gen.asm.append('\tsub eax, '+self.currentMap[x2]['addr']+'\n')
+                self.gen.asm.append('\tsub eax, '+x2addr+'\n')
             else:
                 self.gen.asm.append('\tsub eax, '+x2+'\n')
         else:
             if(x2 in self.currentMap):
-                self.gen.asm.append("\tmov eax, "+self.currentMap[x1]['addr']+'\n')
+                self.gen.asm.append("\tmov eax, "+x1addr+'\n')
             self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
         return 'eax'
     
@@ -337,91 +373,103 @@ class utility:
     
     def mul(self,x1,x2,returnSpace):
         if(isinstance(x1,Data)):
+            x1addr=self.getAbsoluteAdd(x1)
             x1=x1.name
         if(isinstance(x2,Data)):
+            x2addr=self.getAbsoluteAdd(x2)
             x2=x2.name
 
         #mem mem
         if(x1 in self.currentMap):
             # returnSpace is reg
             if(returnSpace in self.registers):
-                self.gen.asm.append("\tmov "+newSpace+", "+self.currentMap[x1]['addr']+'\n')
-                self.gen.asm.append("\tmul "+newSpace+", "+self.currentMap[x2]['addr']+'\n')
+                self.gen.asm.append("\tmov "+newSpace+", "+x1addr+'\n')
+                self.gen.asm.append("\tmul "+newSpace+", "+x2addr+'\n')
             #returnSpace is mem
             else:
-                self.gen.asm.append("\tmov "+"eax"+", "+self.currentMap[x1]['addr']+'\n')
-                self.gen.asm.append("\tmul "+"eax"+", "+self.currentMap[x2]['addr']+'\n')
+                self.gen.asm.append("\tmov "+"eax"+", "+x1addr+'\n')
+                self.gen.asm.append("\tmul "+"eax"+", "+x2addr+'\n')
                 self.gen.asm.append("\tmov "+returnSpace+", "+"eax"+'\n')
             
         else:
             if(x1==returnSpace):
-                self.gen.asm.append("\tmul "+returnSpace+", "+self.currentMap[x2]['addr']+'\n')
+                self.gen.asm.append("\tmul "+returnSpace+", "+x2addr+'\n')
             else:
                 self.gen.asm.append("\tmov "+returnSpace+", "+x1+'\n')
-                self.gen.asm.append("\tmul "+returnSpace+", "+self.currentMap[x2]['addr']+'\n')
+                self.gen.asm.append("\tmul "+returnSpace+", "+x1addr+'\n')
         
         return returnSpace        
 
 
-def div(self,x1,x2,returnSpace):
+    def div(self,x1,x2,returnSpace):
         if(isinstance(x1,Data)):
+            x1addr=self.getAbsoluteAdd(x1)
             x1=x1.name
         if(isinstance(x2,Data)):
+            x2addr=self.getAbsoluteAdd(x2)
             x2=x2.name
 
         #mem mem
         if(x1 in self.currentMap):
             if(returnSpace in self.registers):
-                self.gen.asm.append("\tmov "+"eax"+", "+self.currentMap[x1]['addr']+'\n')
+                self.gen.asm.append("\tmov "+"eax"+", "+x1addr+'\n')
                 self.gen.asm.append("cdq")
-                self.gen.asm.append("\tidiv "+self.currentMap[x1]['addr']+'\n')
+                self.gen.asm.append("\tidiv "+x1addr+'\n')
                 self.gen.asm.append("\tmov "+returnSpace+", "+"eax"+'\n')
             
         else:
             if(x1==returnSpace):
                 if(x1=='eax'):
                     self.gen.asm.append("cdq")
-                    self.gen.asm.append("\tidiv "+returnSpace+", "+self.currentMap[x2]['addr']+'\n')
+                    self.gen.asm.append("\tidiv "+returnSpace+", "+x2addr+'\n')
                 else:
                     self.gen.asm.append("\tmov "+"eax"+", "+x1+'\n')
                     self.gen.asm.append("cdq")
-                    self.gen.asm.append("\tidiv"+self.currentMap[x2]['addr']+'\n')
+                    self.gen.asm.append("\tidiv"+x2addr+'\n')
                     self.gen.asm.append("\tmov "+returnSpace+", "+"eax"+'\n')
             else:
                 self.gen.asm.append("\tmov "+"eax"+", "+x1+'\n')
                 self.gen.asm.append("cdq")
-                self.gen.asm.append("\tidiv"+self.currentMap[x2]['addr']+'\n')
+                self.gen.asm.append("\tidiv"+x2addr+'\n')
                 self.gen.asm.append("\tmov "+returnSpace+", "+"eax"+'\n')
         
         return returnSpace  
 
     def mov(self,x1,x2):
         if(isinstance(x1,Data)):
+            x1addr=self.getAbsoluteAdd(x1)
             x1=x1.name
         if(isinstance(x2,Data)):
+            x2addr=self.getAbsoluteAdd(x2)
             x2=x2.name
 
         #x2 is not a imm
-        if(x1 in self.currentMap and x2 on self.currentMap):
-            self.gen.asm.append("\tmov eax, "+self.currentMap[x2]['addr']+'\n')
-            self.gen.asm.append("\tmov "+self.currentMap[x2]['addr']+' eax'+'\n')
+        if(x1 in self.currentMap and x2 in self.currentMap):
+            self.gen.asm.append("\tmov eax, "+x2addr+'\n')
+            self.gen.asm.append("\tmov "+x2addr+' eax'+'\n')
         elif(isinstance(x2,str)):
-            self.gen.asm.append('\tmov '+x1+', '+self.currentMap[x2]['addr']+'\n')
+            self.gen.asm.append('\tmov '+x1+', '+x2addr+'\n')
         else:
             self.gen.asm.append('\tmov '+x1+', %.d'%x2+'\n')
         return x1
         
     def passPara(self,para):
-            source=None
+            if(para in self.registers):
+                self.gen.asm.append('\tmov BYTE DWORD '+'[esp+%.d], '%self.callOffset+' eax')
+                return
+
             Type=para.type
             if(Type=='char'):
-                self.gen.asm.append('\tmov BYTE PTR ')
+                self.gen.asm.append('\tmov BYTE PTR '+"eax"+self.currentMap[para.name]['addr'])
+                self.gen.asm.append('\tmov BYTE PTR '+'[esp+%.d], '%self.callOffset+' eax')
                 self.callOffset+=4
             elif(Type=='short'):
-                self.gen.asm.append('\tmov WORD PTR ')
+                self.gen.asm.append('\tmov WORD PTR '+"eax"+self.currentMap[para.name]['addr'])
+                self.gen.asm.append('\tmov WORD PTR '+'[esp+%.d], '%self.callOffset+' eax')
                 self.callOffset+=4
             elif(Type=='int'):
-                self.gen.asm.append('\tmov DWORD PTR ')
+                self.gen.asm.append('\tmov DWORD PTR '+"eax"+self.currentMap[para.name]['addr'])
+                self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '%self.callOffset+' eax')
                 self.callOffset+=4
             elif(Type=='const int'):
                 source=int(para)
@@ -429,15 +477,26 @@ def div(self,x1,x2,returnSpace):
             elif(Type=='const char'):
                 source=char(para)
             elif(Type=='struct'):
-                for i in 
-            if(self.callOffset==0):
-                self.gen.asm.append('[esp], ')
+                for i in range(0,para.size/4+1):
+                    base=int(re.findall('[1-9]+',self.currentMap[para.name]['addr'])[0])
+                    addr=i*4+base
+                    strAddr=self.currentMap[para.name]['addr'].replace(str(base),str(addr))
+                    self.gen.asm.append('\tmov DWORD PTR '+"eax, "+strAddr+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '%self.callOffset+' eax')
+                    self.callOffset+=4
             else:
-                self.gen.asm.append('[esp+%.d], '%self.callOffset)
-            if(source==None):
-                checkIn(para)
-                source=self.currentMap[para]['reg']
-            self.gen.asm.append(source+'\n')
+                raise TypeError("error in passPara")
+            
+            return
+            
+            # if(self.callOffset==0):
+            #     self.gen.asm.append('[esp], ')
+            # else:
+            #     self.gen.asm.append('[esp+%.d], '%self.callOffset)
+            # if(source==None):
+            #     checkIn(para)
+            #     source=self.currentMap[para]['reg']
+            # self.gen.asm.append(source+'\n')
 
     def getEax(self):
         return "eax"
@@ -462,33 +521,97 @@ def div(self,x1,x2,returnSpace):
         self.gen.asm.append('\tcall '+funcName+'\n')
     
     def And(self,x1,x2):
-        self.checkIn(x1)
-        if(isinstance(x2,str)):
-            self.checkIn(x2)
-            self.gen.asm.append('\tand '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
+        if(isinstance(x1,Data)):
+            y1addr=self.getAbsoluteAdd(x1)
+            y1=x1.name
+        if(isinstance(x2,Data)):
+            y2addr=self.getAbsoluteAdd(x2)
+            y2=x2.name
+        #x2 is not a imm
+        if(x2=='eax'):
+            tmp=y1
+            y1=y2
+            y2=tmp
+            tmp=y1addr
+            y1addr=y2addr
+            y2addr=tmp  
+
+        if(y1 in self.currentMap and y2 in self.currentMap):
+            self.gen.asm.append("\tmov eax, "+y1addr+'\n')
+            self.gen.asm.append("\tand eax, "+y2addr+'\n')
+        elif(isinstance(y2,str)):
+            if(y2 in self.currentMap):
+                self.gen.asm.append('\tand eax, '+y2addr+'\n')
+            else:
+                self.gen.asm.append('\tand eax, '+y2+'\n')
         else:
-            self.gen.asm.append('\tand '+self.currentMap[x1]['reg']+', %.d' % x2+'\n')
+            if(y2 in self.currentMap):
+                self.gen.asm.append("\tmov eax, "+y1addr+'\n')
+            self.gen.asm.append("\tand eax, "+str(y2)+'\n')
+        return 'eax'
         
     def Or(self,x1,x2):
-        self.checkIn(x1)
-        if(isinstance(x2,str)):
-            self.checkIn(x2)
-            self.gen.asm.append('\tor '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
+        if(isinstance(x1,Data)):
+            y1addr=self.getAbsoluteAdd(x1)
+            y1=x1.name
+        if(isinstance(x2,Data)):
+            y2addr=self.getAbsoluteAdd(x2)
+            y2=x2.name
+        #x2 is not a imm
+        if(x2=='eax'):
+            tmp=y1
+            y1=y2
+            y2=tmp
+            tmp=y1addr
+            y1addr=y2addr
+            y2addr=tmp  
+        if(y1 in self.currentMap and y2 in self.currentMap):
+            self.gen.asm.append("\tmov eax, "+y1addr+'\n')
+            self.gen.asm.append("\tor eax, "+y2addr+'\n')
+        elif(isinstance(y2,str)):
+            if(y2 in self.currentMap):
+                self.gen.asm.append('\tor eax, '+y2addr+'\n')
+            else:
+                self.gen.asm.append('\tor eax, '+y2+'\n')
         else:
-            self.gen.asm.append('\tor '+self.currentMap[x1]['reg']+', %.d' % x2+'\n')
+            if(y2 in self.currentMap):
+                self.gen.asm.append("\tmov eax, "+y1addr+'\n')
+            self.gen.asm.append("\tor eax, "+str(y2)+'\n')
+        return 'eax'
         
     def nor(self,x1,x2):
-        self.checkIn(x1)
-        if(isinstance(x2,str)):
-            self.checkIn(x2)
-            self.gen.asm.append('\tnor '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
+        if(isinstance(x1,Data)):
+            y1addr=self.getAbsoluteAdd(x1)
+            y1=x1.name
+        if(isinstance(x2,Data)):
+            y2addr=self.getAbsoluteAdd(x2)
+            y2=x2.name
+        #x2 is not a imm
+        if(x2=='eax'):
+            tmp=y1
+            y1=y2
+            y2=tmp
+            tmp=y1addr
+            y1addr=y2addr
+            y2addr=tmp  
+        if(y1 in self.currentMap and y2 in self.currentMap):
+            self.gen.asm.append("\tmov eax, "+y1addr+'\n')
+            self.gen.asm.append("\tnor eax, "+y2addr+'\n')
+        elif(isinstance(y2,str)):
+            if(y2 in self.currentMap):
+                self.gen.asm.append('\tnor eax, '+y2addr+'\n')
+            else:
+                self.gen.asm.append('\tnor eax, '+y2+'\n')
         else:
-            self.gen.asm.append('\tnor '+self.currentMap[x1]['reg']+', %.d' % x2+'\n')
+            if(y2 in self.currentMap):
+                self.gen.asm.append("\tmov eax, "+y1addr+'\n')
+            self.gen.asm.append("\tnor eax, "+str(y2)+'\n')
+        return 'eax'
         
-    def Not(self,x1,x2):
-        self.checkIn(x1)
-        self.checkIn(x2)
-        self.gen.asm.append('\tnot '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
+    def Not(self,x1):
+        x1addr=self.getAbsoluteAdd(x1)
+        self.gen.asm.append("\tnot eax, "+x1addr+'\n')
+        return 'eax'
     
     def markLabel(self,label=None):
         """
@@ -501,20 +624,28 @@ def div(self,x1,x2,returnSpace):
         self.gen.asm.append(label+':\n')
     
     def allocateLabel(self):
-        
         return '.LC%.d'%self.magicNum
 
+    def lea(self,x):
+        if(x in self.registers):
+            self.gen.asm.append('\tlea '+'eax '+'['+x+']'+'\n')
+        else:
+            self.gen.asm.append('\tlea '+'eax '+x+'\n')
     
     def cmp(self,x1,x2):
-        if(isinstance(x1,str)):
-            v1=self.currentMap[x1]['reg']
-        if(isinstance(x2,str)):
-            v2=self.currentMap[x2]['reg']
-        if(v1==0):
-            v1=x1
-        if(v2==0):
-            v2=x2
-        self.gen.asm.append('\tcmp '+v1+', '+v2+'\n')
+        if(isinstance(x1,Data)):
+            x1addr=self.getAbsoluteAdd(x1)
+            x1=x1.name
+        if(isinstance(x2,Data)):
+            x2addr=self.getAbsoluteAdd(x2)
+            x2=x2.name
+        if(x1 in self.currentMap and x2 in self.currentMap):
+            self.gen.asm.append("\tmov eax, "+x1addr+'\n')
+            self.gen.asm.append('\tcmp '+'eax'+', '+x2+'\n')
+            return
+
+        self.gen.asm.append('\tcmp '+x1+', '+x2+'\n')
+        return 
     
     def jg(self,label):
         self.gen.asm.append('\tjg '+label+'\n')
@@ -532,6 +663,9 @@ def div(self,x1,x2,returnSpace):
         self.gen.asm.append('\tje '+label+'\n')
         
     def jne(self,label):
+        self.gen.asm.append('\tjne '+label+'\n')
+
+    def jmp(self,label):
         self.gen.asm.append('\tjne '+label+'\n')
     
     def loop(self,label):
