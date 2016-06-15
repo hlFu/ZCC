@@ -1,6 +1,6 @@
 int main(void)
 {
-    int i;
+    int i,j;
     i=1;
-    printf("%d\n",i);
+    j=j+1;
 }

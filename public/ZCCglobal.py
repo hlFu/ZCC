@@ -29,7 +29,7 @@ class CType(object):
         """
         return len(self.is_const) - 1
 
-    def size(self):
+    def Size(self):
         """
         Must get size by this function!!!
         :rtype: int
