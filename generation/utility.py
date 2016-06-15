@@ -61,14 +61,21 @@ class utility:
                 self.globalV.update({key:value})
                 if(value.storage_class=='static'):
                     self.gen.asm.append('\t.local '+key+'\n')
-                self.gen.asm.append('\t.comm '+key+',%.d,4\n' %(value.size))
+                self.gen.asm.append('\t.comm '+key+',%d,4\n' %(value.size))
         self.gen.asm.append('\t.section .rodata\n')
-        self.gen.asm.append('\t.text\n')
-
         #get const string and double
         for v in global_context.literal:
             self.constMap.update({v:(self.constName+str(self.magicNum))})
             self.magicNum+=1
+            self.gen.asm.append(self.constMap[v]+'\n')
+            if(isinstance(v,str)):
+                self.gen.asm.append("\t.string "+v+'\n')
+            else:
+                self.gen.asm.append("\t.double"+str(v)+'\n')
+
+        self.gen.asm.append('\t.text\n')
+
+        
     
     # def __parseStruct(self,structName,Struct):
     #     V={}
@@ -104,17 +111,17 @@ class utility:
             #             size=8
             #         else:
             #             size=4
-            #         map.update({member:{'reg':0,'type':Type,'addr':'[esp+%.d]'%(offset-size)}})
+            #         map.update({member:{'reg':0,'type':Type,'addr':'[esp+%d]'%(offset-size)}})
             #         offset-=size
             #     continue
             if(s_class == 'static'):
-                v=v+'%.d' % self.magicNum
+                v=v+'%d' % self.magicNum
                 self.magicNum+=4
                 map.update({v:{'reg':0,'type':Type,'addr':v}})
                 self.currentStatic.update({v:Type})
                 self.statics.update({v:Type})
                 continue
-            map.update({v:{'reg':0,'type':Type,'addr':'[esp+%.d]'%(offset-size)}})
+            map.update({v:{'reg':0,'type':Type,'addr':'[esp+%d]'%(offset-size)}})
             offset-=size
         for v in self.globalV:
             map.update({v:{'reg':0,'type':self.globalV[v],'addr':v}})
@@ -129,7 +136,7 @@ class utility:
         self.gen.asm.append(funcName+':\n')
         self.gen.asm.append('\tpush ebp\n')
         self.gen.asm.append('\tmov ebp, esp\n')
-        self.gen.asm.append('\tsub esp, %.d\n' % space)
+        self.gen.asm.append('\tsub esp, %d\n' % space)
         self.currentMap=self.newMap(funcName)
         self.tmpSP=4
         print("ok~~~")
@@ -149,13 +156,13 @@ class utility:
                 Type=value.type
                 size=value.size()
                 if(s_class == 'static'):
-                    v=v+'%.d' % self.magicNum
+                    v=v+'%d' % self.magicNum
                     self.magicNum+=4
                     map.update({v:{'reg':0,'type':Type,'addr':v}})
                     self.currentStatic.update({v:Type})
                     self.statics.update({v:Type})
                     continue
-                map.update({v:{'reg':0,'type':Type,'addr':'[esp+%.d]'%(offset-size)}})
+                map.update({v:{'reg':0,'type':Type,'addr':'[esp+%d]'%(offset-size)}})
                 offset-=size
         return
 
@@ -274,7 +281,7 @@ class utility:
             self.currentMap.update({newTmp:{'reg':reg,'type':Type,'addr':0}})
             return reg
         else:
-            self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp-%.d]'%(self.tmpSP)}})
+            self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp-%d]'%(self.tmpSP)}})
             return newTmp
         
 
@@ -482,22 +489,22 @@ class utility:
         
     def passPara(self,para):
             if(para in self.registers):
-                self.gen.asm.append('\tmov BYTE DWORD '+'[esp+%.d], '%self.callOffset+' eax'+'\n')
+                self.gen.asm.append('\tmov BYTE DWORD '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                 return
             print(para)
             if(isinstance(para,Data)):
                 Type=para.type.type
                 if(Type=='char'):
-                    self.gen.asm.append('\tmov BYTE PTR '+"eax"+self.currentMap[para.name]['addr']+'\n')
-                    self.gen.asm.append('\tmov BYTE PTR '+'[esp+%.d], '%self.callOffset+' eax'+'\n')
+                    self.gen.asm.append('\tmov BYTE PTR '+"eax, "+self.currentMap[para.name]['addr']+'\n')
+                    self.gen.asm.append('\tmov BYTE PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                     self.callOffset+=4
                 elif(Type=='short'):
-                    self.gen.asm.append('\tmov WORD PTR '+"eax"+self.currentMap[para.name]['addr']+'\n')
-                    self.gen.asm.append('\tmov WORD PTR '+'[esp+%.d], '%self.callOffset+' eax'+'\n')
+                    self.gen.asm.append('\tmov WORD PTR '+"eax, "+self.currentMap[para.name]['addr']+'\n')
+                    self.gen.asm.append('\tmov WORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                     self.callOffset+=4
                 elif(Type=='int'):
-                    self.gen.asm.append('\tmov DWORD PTR '+"eax"+self.currentMap[para.name]['addr']+'\n')
-                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '%self.callOffset+' eax'+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+"eax, "+self.currentMap[para.name]['addr']+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                     self.callOffset+=4
                 elif(Type=='const int'):
                     source=int(para)
@@ -510,13 +517,13 @@ class utility:
                         addr=i*4+base
                         strAddr=self.currentMap[para.name]['addr'].replace(str(base),str(addr))
                         self.gen.asm.append('\tmov DWORD PTR '+"eax, "+strAddr+'\n')
-                        self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '%self.callOffset+' eax'+'\n')
+                        self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                         self.callOffset+=4
                 else:
                     raise TypeError("error in passPara")
             else:
                 if(isinstance(para,str)):
-                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%.d], '+self.constMap[para]+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+self.constMap[para]+'\n')
                     self.callOffset+=4
                 elif(isinstance(para,float)):
                     pass
@@ -528,7 +535,7 @@ class utility:
             # if(self.callOffset==0):
             #     self.gen.asm.append('[esp], ')
             # else:
-            #     self.gen.asm.append('[esp+%.d], '%self.callOffset)
+            #     self.gen.asm.append('[esp+%d], '%self.callOffset)
             # if(source==None):
             #     checkIn(para)
             #     source=self.currentMap[para]['reg']
@@ -658,13 +665,13 @@ class utility:
         mostly use at loop
         """
         if(label==None):
-            label='.LC%.d'%self.magicNum
+            label='.LC%d'%self.magicNum
             self.magicNum+=1
         self.gen.asm.append(label+':\n')
     
     def allocateLabel(self):
         self.magicNum+=1
-        return '.LC%.d'%self.magicNum
+        return '.LC%d'%self.magicNum
 
     def lea(self,x):
         if(isinstance(x,Data)):
