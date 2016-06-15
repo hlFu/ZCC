@@ -24,6 +24,7 @@ int main(int argc,char **argv)
     char *s;                   
 
     s=argv[1];
+    d+s;
     while(*s!=0)
     {
         if(*s<=LOWERCASE_Z&&*s>=LOWERCASE_A)

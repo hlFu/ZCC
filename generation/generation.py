@@ -4,6 +4,8 @@ import sys
 sys.path.append('c:\\zcc\\zcc')
 from public.ZCCglobal import *
 from utility import utility
+from copy import deepcopy
+from data import Data
 
 
 class generator:
@@ -12,6 +14,8 @@ class generator:
         # asm output list
         self.asm = []
         self.tools = utility(self)
+        self.exp2=[2**x for x in range(32)]
+        print(self.exp2)
         self.expression_handler = {
             'primary_expression': self.gen_primary_expression,
             'postfix_expression': self.gen_postfix_expression,
@@ -142,8 +146,17 @@ class generator:
         :type node:TreeNode
         :rtype: str
         """
-        print(node)
-        pass
+        op1=self.expression_handler[node[1][0]](node[1])
+        tmp=self.tools.allocateNewReg()
+        self.tools.lock(tmp)
+        self.tools.mov(tmp,op1)
+        op2=self.expression_handler[node[3][0]](node[3])
+        if node[2]=="+":
+            ret=self.tools.add(tmp,op2)
+        else:
+            ret=self.tools.sub(tmp,op2)
+        self.tools.unlock(tmp)
+        return ret
 
     def gen_primary_expression(self,node):
         """
@@ -178,7 +191,24 @@ class generator:
         :type node:TreeNode
         :rtype: str
         """
-        pass
+        op1=self.expression_handler[node[1][0]](node[1])
+        tmp=self.tools.allocateNewReg()
+        self.tools.lock(tmp)
+        self.tools.mov(tmp,op1)
+        op2=self.expression_handler[node[3][0]](node[3])
+        if node[2]=="*":
+            if isinstance(op2,str):
+                try:
+                    num=int(op2)
+                    if (num)
+                except TypeError:
+                    ret=self.tools.mul(tmp,op2)
+            else:
+                ret=self.tools.mul(tmp,op2)
+        elif node[2]=="/":
+            ret=self.tools.div(tmp,op2)
+        self.tools.unclock(tmp)
+        return ret
 
 
     def gen_shift_expression(self,node):
@@ -186,7 +216,11 @@ class generator:
         :type node:TreeNode
         :rtype: str
         """
-        pass
+        op1=self.expression_handler[node[1][0]](node[1])
+        self.tools.lock(op1)
+        op2=self.expression_handler[node[3][0]](node[3])
+        self.tools.unlock(op1)
+        ret=self.tools.add(op1,op2)
 
     def gen_relational_expression(self,node):
         """
