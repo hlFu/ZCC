@@ -139,7 +139,7 @@ class generator:
         :type context:Context
         """
         if isinstance(node[2],TreeNode):
-            ret=self.expression_handler[node[2][0]](node[2])
+            ret=self.expression_handler[node[2][0]](node[2],context)
             self.tools.mov(self.tools.getEax(),ret)
         self.tools.ret()
 
@@ -149,9 +149,42 @@ class generator:
         :type context:Context
         """
         if node[1]=="for":
-            pass
+            if isinstance(node[5],TreeNode):
+                label1=self.tools.allocateLabel()
+                label2=self.tools.allocateLabel()
+                label3=self.tools.allocateLabel()
+                self.gen_expression_statement(node[3],context)
+                self.tools.jmp(label2)
+                self.tools.markLabel(label1)
+                self.expression_handler[node[5][0]](node[5],context)
+                self.tools.markLabel(label2)
+                ret=self.gen_expression_statement(node[4],context)
+                self.tools.cmp(ret,self.tools.getFalse())
+                self.tools.je(label3)
+                self.gen_statement(node[7],context)
+                self.tools.jmp(label1)
+                self.tools.markLabel(label3)
+            else:
+                label1=self.tools.allocateLabel()
+                label2=self.tools.allocateLabel()
+                self.gen_expression_statement(node[3],context)
+                self.tools.markLabel(label1)
+                ret=self.gen_expression_statement(node[4],context)
+                self.tools.cmp(ret,self.tools.getFalse())
+                self.gen_statement(node[6],context)
+                self.tools.jmp(label1)
+                self.tools.markLabel(label2)
         elif node[1]=="while":
-            pass
+            label1=self.tools.allocateLabel()
+            label2=self.tools.allocateLabel()
+            self.tools.markLabel(label1)
+            ret=self.expression_handler[node[3][0]](node[3],context)
+            self.tools.cmp(ret,self.tools.getFalse())
+            self.tools.je(label2)
+            self.gen_statement(node[5],context)
+            self.tools.jmp(label1)
+            self.tools.markLabel(label2)
+
 
 
     def gen_additive_expression(self, node,context):
