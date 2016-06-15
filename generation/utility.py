@@ -35,6 +35,8 @@ class utility:
         #tmp Name
         self.tmpName='__tmp'
         self.tmpNum=1
+        self.callOffset=0
+
         
     def globalInitialize(self):
         self.gen.asm.append('\t.intel_syntax noprefix\n')
@@ -228,10 +230,11 @@ class utility:
         reg=checkFull()
         if(reg!=-1):
             self.currentMap.update({newTmp:{'reg':reg,'type':Type,'addr':0}})
+            return reg
         else:
             self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp-%.d]'%(self.tmpSP)}})
+            return newTmp
         
-        return newTmp
 
 
     def lock(self,name):
@@ -276,99 +279,186 @@ class utility:
         if(isinstance(x2,Data)):
             x2=x2.name
         #x2 is not a imm
-        if(x1 in self.currentMap and )
-        if(isinstance(x2,str)):
-            self.checkIn(x2)
-            self.gen.asm.append('\tadd '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
+        if(x2=='eax'):
+            y1=x2
+            y2=x1
+        if(y1 in self.currentMap and y2 on self.currentMap):
+            self.gen.asm.append("\tmov eax, "+self.currentMap[y1]['addr']+'\n')
+            self.gen.asm.append("\tadd eax, "+self.currentMap[y2]['addr']+'\n')
+        elif(isinstance(y2,str)):
+            if(y2 in self.currentMap):
+                self.gen.asm.append('\tadd eax, '+self.currentMap[y2]['addr']+'\n')
+            else:
+                self.gen.asm.append('\tadd eax, '+y2+'\n')
         else:
-            self.gen.asm.append('\tadd '+self.currentMap[x1]['reg']+', %.d'%x2+'\n')
+            if(y2 in self.currentMap):
+                self.gen.asm.append("\tmov eax, "+self.currentMap[y1]['addr']+'\n')
+            self.gen.asm.append("\tadd eax, "+str(y2)+'\n')
+        return 'eax'
     
-    def addToTmp(self):
-        '''
-        perform bx=bx+ax
-        bx is a tmp reg
-        deal with assignment like a=func(b)+func(c)+...
-        '''
-        self.gen.asm.append('\tadd ebx eax\n')
+    # def addToTmp(self):
+    #     '''
+    #     perform bx=bx+ax
+    #     bx is a tmp reg
+    #     deal with assignment like a=func(b)+func(c)+...
+    #     '''
+    #     self.gen.asm.append('\tadd ebx eax\n')
     
     def sub(self,x1,x2):
-        self.checkIn(x1)
-        if(isinstance(x2,str)):
-            self.checkIn(x2)
-            self.gen.asm.append('\tsub '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
+        if(isinstance(x1,Data)):
+            x1=x1.name
+        if(isinstance(x2,Data)):
+            x2=x2.name
+        #x2 is not a imm
+        if(x2=='eax'):
+            self.gen.asm.append("\tsub "+x1+', '+'eax'+'\n')
+            self.gen.asm.append('\tmov eax, '+x1+'\n')
+        if(x1 in self.currentMap and x2 on self.currentMap):
+            self.gen.asm.append("\tmov eax, "+self.currentMap[x1]['addr']+'\n')
+            self.gen.asm.append("\tsub eax, "+self.currentMap[x2]['addr']+'\n')
+        elif(isinstance(x2,str)):
+            if(x2 in self.currentMap):
+                self.gen.asm.append('\tsub eax, '+self.currentMap[x2]['addr']+'\n')
+            else:
+                self.gen.asm.append('\tsub eax, '+x2+'\n')
         else:
-            self.gen.asm.append('\tsub '+self.currentMap[x1]['reg']+', %.d' % x2+'\n')
+            if(x2 in self.currentMap):
+                self.gen.asm.append("\tmov eax, "+self.currentMap[x1]['addr']+'\n')
+            self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
+        return 'eax'
     
-    def subTmp(self):
-        '''
-        perform bx=bx-ax
-        bx is a tmp reg
-        deal with assignment like a=func(b)-func(c)-...
-        '''
-        self.gen.asm.append('\tsub ebx eax\n')
+    # def subTmp(self):
+    #     '''
+    #     perform bx=bx-ax
+    #     bx is a tmp reg
+    #     deal with assignment like a=func(b)-func(c)-...
+    #     '''
+    #     self.gen.asm.append('\tsub ebx eax\n')
     
-    def mov(self,x1,x2):
-        self.checkIn(x1)
-        if(isinstance(x2,str)):
-            self.checkIn(x2)
-            self.gen.asm.append('\tmov '+self.currentMap[x1]['reg']+', '+self.currentMap[x2]['reg']+'\n')
+    def mul(self,x1,x2,returnSpace):
+        if(isinstance(x1,Data)):
+            x1=x1.name
+        if(isinstance(x2,Data)):
+            x2=x2.name
+
+        #mem mem
+        if(x1 in self.currentMap):
+            # returnSpace is reg
+            if(returnSpace in self.registers):
+                self.gen.asm.append("\tmov "+newSpace+", "+self.currentMap[x1]['addr']+'\n')
+                self.gen.asm.append("\tmul "+newSpace+", "+self.currentMap[x2]['addr']+'\n')
+            #returnSpace is mem
+            else:
+                self.gen.asm.append("\tmov "+"eax"+", "+self.currentMap[x1]['addr']+'\n')
+                self.gen.asm.append("\tmul "+"eax"+", "+self.currentMap[x2]['addr']+'\n')
+                self.gen.asm.append("\tmov "+returnSpace+", "+"eax"+'\n')
+            
         else:
-            try:
-                self.gen.asm.append('\tmov '+self.currentMap[x1]['reg']+', %.d' % x2+'\n')
-            except Exception,e:
-                print '!!!'
-                print self.currentMap[x1]['reg']
+            if(x1==returnSpace):
+                self.gen.asm.append("\tmul "+returnSpace+", "+self.currentMap[x2]['addr']+'\n')
+            else:
+                self.gen.asm.append("\tmov "+returnSpace+", "+x1+'\n')
+                self.gen.asm.append("\tmul "+returnSpace+", "+self.currentMap[x2]['addr']+'\n')
         
+        return returnSpace        
+
+
+def div(self,x1,x2,returnSpace):
+        if(isinstance(x1,Data)):
+            x1=x1.name
+        if(isinstance(x2,Data)):
+            x2=x2.name
+
+        #mem mem
+        if(x1 in self.currentMap):
+            if(returnSpace in self.registers):
+                self.gen.asm.append("\tmov "+"eax"+", "+self.currentMap[x1]['addr']+'\n')
+                self.gen.asm.append("cdq")
+                self.gen.asm.append("\tidiv "+self.currentMap[x1]['addr']+'\n')
+                self.gen.asm.append("\tmov "+returnSpace+", "+"eax"+'\n')
+            
+        else:
+            if(x1==returnSpace):
+                if(x1=='eax'):
+                    self.gen.asm.append("cdq")
+                    self.gen.asm.append("\tidiv "+returnSpace+", "+self.currentMap[x2]['addr']+'\n')
+                else:
+                    self.gen.asm.append("\tmov "+"eax"+", "+x1+'\n')
+                    self.gen.asm.append("cdq")
+                    self.gen.asm.append("\tidiv"+self.currentMap[x2]['addr']+'\n')
+                    self.gen.asm.append("\tmov "+returnSpace+", "+"eax"+'\n')
+            else:
+                self.gen.asm.append("\tmov "+"eax"+", "+x1+'\n')
+                self.gen.asm.append("cdq")
+                self.gen.asm.append("\tidiv"+self.currentMap[x2]['addr']+'\n')
+                self.gen.asm.append("\tmov "+returnSpace+", "+"eax"+'\n')
+        
+        return returnSpace  
+
+    def mov(self,x1,x2):
+        if(isinstance(x1,Data)):
+            x1=x1.name
+        if(isinstance(x2,Data)):
+            x2=x2.name
+
+        #x2 is not a imm
+        if(x1 in self.currentMap and x2 on self.currentMap):
+            self.gen.asm.append("\tmov eax, "+self.currentMap[x2]['addr']+'\n')
+            self.gen.asm.append("\tmov "+self.currentMap[x2]['addr']+' eax'+'\n')
+        elif(isinstance(x2,str)):
+            self.gen.asm.append('\tmov '+x1+', '+self.currentMap[x2]['addr']+'\n')
+        else:
+            self.gen.asm.append('\tmov '+x1+', %.d'%x2+'\n')
+        return x1
+        
+    def passPara(self,para):
+            source=None
+            Type=para.type
+            if(Type=='char'):
+                self.gen.asm.append('\tmov BYTE PTR ')
+                self.callOffset+=4
+            elif(Type=='short'):
+                self.gen.asm.append('\tmov WORD PTR ')
+                self.callOffset+=4
+            elif(Type=='int'):
+                self.gen.asm.append('\tmov DWORD PTR ')
+                self.callOffset+=4
+            elif(Type=='const int'):
+                source=int(para)
+                self.callOffset+=4
+            elif(Type=='const char'):
+                source=char(para)
+            elif(Type=='struct'):
+                for i in 
+            if(self.callOffset==0):
+                self.gen.asm.append('[esp], ')
+            else:
+                self.gen.asm.append('[esp+%.d], '%self.callOffset)
+            if(source==None):
+                checkIn(para)
+                source=self.currentMap[para]['reg']
+            self.gen.asm.append(source+'\n')
+
+    def getEax(self):
+        return "eax"
+    
+    def getNull(self):
+        return 0
+        
+
     def call(self,funcName,parameters=None):
         '''
         @funcName: function
         @parameters: a dict like{parameter1 name: type, parameter2 ...}
         '''
-        offset=0
-        for para in parameters:
-            source=None
-            Type=parameters[para]
-            if(Type=='char'):
-                self.gen.asm.append('\tmov BYTE PTR ')
-                offset+=4
-            elif(Type=='short'):
-                self.gen.asm.append('\tmov WORD PTR ')
-                offset+=4
-            elif(Type=='int'):
-                self.gen.asm.append('\tmov DWORD PTR ')
-                offset+=4
-            elif(Type=='const int'):
-                source=int(para)
-                offset+=4
-            elif(Type=='const char'):
-                source=char(para)
-            elif(Type=='struct'):
-                for member in self.currentMap:
-                    if(member.find(para)!=-1):
-                        self.checkIn(para)
-                        if(offset==0):
-                            self.gen.asm.append('[esp], ')
-                        else:
-                            self.gen.asm.append('[esp+%.d], '%offset)
-                        self.gen.asm.append(self.currentMap[member]['reg'])
-                        if(self.currentMap[Type] == 'double'):
-                            offset+=8
-                        else:
-                            offset+=4
-            if(offset==0):
-                self.gen.asm.append('[esp], ')
-            else:
-                self.gen.asm.append('[esp+%.d], '%offset)
-            if(source==None):
-                checkIn(para)
-                source=self.currentMap[para]['reg']
-            self.gen.asm.append(source+'\n')
+
             
-        for vName in self.currentMap:
-            if(self.currentMap[vName]['reg']=='eax'):
-                self.currentMap[vName]['reg']=0
-                self.registers['eax']=0
-                self.gen.asm.append('\tmov '+self.currentMap[vName]['addr']+', eax\n')
+        # for vName in self.currentMap:
+        #     if(self.currentMap[vName]['reg']=='eax'):
+        #         self.currentMap[vName]['reg']=0
+        #         self.registers['eax']=0
+        #         self.gen.asm.append('\tmov '+self.currentMap[vName]['addr']+', eax\n')
+        self.callOffset=0
         self.gen.asm.append('\tcall '+funcName+'\n')
     
     def And(self,x1,x2):
