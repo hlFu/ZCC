@@ -182,7 +182,6 @@ class generator:
             if node[1][0]=="IDENTIFIER":
                 name=node[1][1]
                 offset=False
-                self.tools.mov(self.tools.getEax(),0)
                 type=deepcopy(context.get_type_by_id(name))
                 return Data(name,offset,type)
             else:
@@ -202,7 +201,8 @@ class generator:
         """
         operend=self.expression_handler[node[1][0]](node[1],context)
         if node[2]=="[":
-
+            if operend.offset==False:
+                self.tools.mov(self.tools.getEax(),0)
             index=self.expression_handler[node[3][0]](node[3],context)
             self.tools.mul(index,operend.type.member_type.size())
             operend.offset=True
@@ -230,12 +230,16 @@ class generator:
             ret=self.tools.call(operend)
             return ret
         elif node[2]==".":
+            if operend.offset==False:
+                self.tools.mov(self.tools.getEax(),0)
             member=node[3][2]
             self.tools.add(self.tools.getEax(),operend.type.offset[member])
             operend.type=operend.type.members[member]
             operend.offset=True
             return operend
         elif node[2]=="->":
+            if operend.offset==False:
+                self.tools.mov(self.tools.getEax(),0)
             member=node[3][2]
             self.tools.add(self.tools.getEax(),operend.type.offset[member])
             operend.type=operend.type.members[member]
@@ -259,7 +263,7 @@ class generator:
                     return ret
             elif operator=="*":
                 if isinstance(operend,Data):
-                    self.tools.mov(self.tools.getEax,operend)
+                    self.tools.mov(self.tools.getEax(),operend)
                     operend.name=self.tools.getNull()
                     operend.offset=True
                     operend.type.is_const.pop()

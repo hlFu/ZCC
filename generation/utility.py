@@ -82,7 +82,7 @@ class utility:
     def newMap(self,funcName,space=32,reserve=0):
         offset=space-reserve
         map={}
-        map.update({0:{'reg':0,'type':Type,'addr':0}})
+        map.update({0:{'reg':0,'type':None,'addr':0}})
         for v in global_context.local[funcName].compound_statement.context.local:
             value=global_context.local[funcName].compound_statement.context.local[v]
             s_class=value.storage_class
