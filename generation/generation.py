@@ -194,7 +194,7 @@ class generator:
         :rtype: str
         """
         op1=self.expression_handler[node[1][0]](node[1],context)
-        tmp=self.tools.allocateNewReg()
+        tmp=self.tools.allocateNewReg(op1)
         self.tools.lock(tmp)
         self.tools.mov(tmp,op1)
         op2=self.expression_handler[node[3][0]](node[3],context)
@@ -249,7 +249,7 @@ class generator:
                     if isinstance(argument_expression,TreeNode):
                         argument=self.expression_handler[argument_expression[0]](argument_expression,context)
                         if argument==self.tools.getEax():
-                            tmp=self.tools.allocateNewReg()
+                            tmp=self.tools.allocateNewReg(self.tools.getEax())
                             self.tools.lock(tmp)
                             self.tools.mov(tmp,self.tools.getEax())
                             real_arg_list.append([tmp,True])
@@ -324,7 +324,7 @@ class generator:
         :rtype: str
         """
         op1=self.expression_handler[node[1][0]](node[1],context)
-        tmp=self.tools.allocateNewReg()
+        tmp=self.tools.allocateNewReg(op1)
         self.tools.lock(tmp)
         self.tools.mov(tmp,op1)
         op2=self.expression_handler[node[3][0]](node[3],context)
@@ -373,7 +373,7 @@ class generator:
         label1=self.tools.allocateLabel()
         label2=self.tools.allocateLabel()
         op1=self.expression_handler[node[1][0]](node[1],context)
-        tmp=self.tools.allocateNewReg()
+        tmp=self.tools.allocateNewReg(op1)
         self.tools.lock(tmp)
         self.tools.mov(tmp,op1)
         op2=self.expression_handler[node[3][0]](node[3],context)
@@ -402,7 +402,7 @@ class generator:
         label1=self.tools.allocateLabel()
         label2=self.tools.allocateLabel()
         op1=self.expression_handler[node[1][0]](node[1],context)
-        tmp=self.tools.allocateNewReg()
+        tmp=self.tools.allocateNewReg(op1)
         self.tools.lock(tmp)
         self.tools.mov(tmp,op1)
         op2=self.expression_handler[node[3][0]](node[3],context)
@@ -426,7 +426,7 @@ class generator:
         :rtype: str
         """
         op1=self.expression_handler[node[1][0]](node[1],context)
-        tmp=self.tools.allocateNewReg()
+        tmp=self.tools.allocateNewReg(op1)
         self.tools.lock(tmp)
         self.tools.mov(tmp,op1)
         op2=self.expression_handler[node[3][0]](node[3],context)
@@ -457,7 +457,7 @@ class generator:
         :rtype: str
         """
         op1=self.expression_handler[node[1][0]](node[1],context)
-        tmp=self.tools.allocateNewReg()
+        tmp=self.tools.allocateNewReg(op1)
         self.tools.lock(tmp)
         self.tools.mov(tmp,op1)
         op2=self.expression_handler[node[3][0]](node[3],context)
@@ -515,7 +515,7 @@ class generator:
         """
         operator=self.gen_assignment_operator(node[2],context)
         right=self.expression_handler[node[3][0]](node[3],context)
-        tmp=self.tools.allocateNewReg()
+        tmp=self.tools.allocateNewReg(right)
         self.tools.lock(tmp)
         self.tools.mov(tmp,right)
         left=self.expression_handler[node[1][0]](node[1],context)
