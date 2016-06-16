@@ -137,7 +137,7 @@ class utility:
         return map
     
     def newFunc(self,funcName):
-        space=64
+        space=500
         self.funcName=funcName
         self.gen.asm.append('\t.globl '+funcName+'\n')
         self.gen.asm.append('\t.type '+funcName+', @function\n')
