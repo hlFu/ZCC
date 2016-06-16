@@ -6,9 +6,9 @@ int main(void)
 {
     int a[5][5];
     int i,j;
-    for(i=0;i<5;i++)
+    for(i=0;i<5;++i)
     {
-        for (j=0;j<5;j++)
+        for (j=0;j<5;++j)
         {
             a[i][j]=i*5+j;
             printf("%02d ",a[i][j]);

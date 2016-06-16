@@ -19,17 +19,15 @@ int fib(int n);
 int n,i;
 int main(int argc,char **argv)
 {
-    float f;
-    double d;
+    double d,f;
     char *s;                   
 
     s=argv[1];
-    d+s;
     while(*s!=0)
     {
         if(*s<=LOWERCASE_Z&&*s>=LOWERCASE_A)
             *s=*s+UPPERCASE_A-LOWERCASE_A;
-        s++;
+        ++s;
     }    
     printf("%s\n",argv[1]);
 
@@ -39,7 +37,7 @@ int main(int argc,char **argv)
     f=0.5;
     d=1.5;
 
-    for(i=0;i<n;i++)
+    for(i=0;i<n;++i)
     {
         int a;
         a=3;

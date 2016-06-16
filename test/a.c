@@ -1,20 +1,20 @@
-struct A{
-    int a;
-    int b;
-}a;
 
+int printf(char *s,...);
+int foo()
+{
+    printf("hello\n");
 
-int printf(char *s, int i);
+    return 2;
+}
+
 int main(void)
 {
     int i;
-
-    a.b=2;
-    for(i=0;i<4;i=i+1)
-    {
-        printf("%d\n",a.b);
-    }
+//    i=foo();
+    for(i=0;i<4;++i)
+    printf("hello\n");
 
     return 0;
 }
+
 
