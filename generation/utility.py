@@ -285,7 +285,7 @@ class utility:
             newTmp=self.tmpName+str(self.tmpNum)
             self.tmpNum+=1
             self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.tmpSP)}})
-            newType=CType('double',8,None)
+            newType=CType('double',8)
             newTmp=Data(newTmp,False,newType)
             return newTmp
         
@@ -1088,7 +1088,9 @@ class utility:
                     self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+'OFFSET FLAT:'+self.constMap[para]+'\n')
                     self.callOffset+=4
                 elif(isinstance(para,float)):
-                    pass
+                    self.gen.asm.append('\tmov eax, DWORD PTR'+self.constMap[para]+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
+                    self.callOffset+=8
                 else:
                     raise TypeError('error in passPara\n')
             
