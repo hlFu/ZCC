@@ -252,8 +252,11 @@ class utility:
         if(data.name==0):
             return '[eax]'
         if(data.offset):
-            index=self.currentMap[data.name]['addr'].find('p')+1
-            strAddr=self.currentMap[data.name]['addr'][:index]+'+eax+'+self.currentMap[data.name]['addr'][index:]
+            addr=self.currentMap[data.name]['addr']
+            if(addr[0]!='['):
+                return addr+'[eax]'
+            index=addr.find('p')+1
+            strAddr=addr[:index]+'+eax+'+addr[index:]
             return strAddr
         
         return self.currentMap[data.name]['addr']
@@ -433,7 +436,7 @@ class utility:
                         self.gen.asm.append("\tfaddp"+"\n")
                     else:
                         self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                        self.gen.asm.append("\tadd eax, "+x2+'\n')
+                        self.gen.asm.append("\tadd eax, "+str(x2)+'\n')
             elif(isinstance(x2,Data)):
                 type2=x2.type.type
                 x2addr=self.getAbsoluteAdd(x2)
@@ -593,7 +596,7 @@ class utility:
                         self.gen.asm.append("\tfsubp st(1), st"+"\n")
                     else:
                         self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                        self.gen.asm.append("\tsub eax, "+x2+'\n')
+                        self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
             elif(isinstance(x2,Data)):
                 type2=x2.type.type
                 x2addr=self.getAbsoluteAdd(x2)
@@ -616,7 +619,7 @@ class utility:
                         self.gen.asm.append("\tfld QWORD PTR "+self.constMap[x1]+"\n")
                         self.gen.asm.append("\tfsub st, st(1)"+"\n")
                     else:
-                        self.gen.asm.append("\tmov eax, "+x1+'\n')
+                        self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
                         self.gen.asm.append("\tsub eax, "+x2addr+'\n')
             else:
                 if(x1 != 'st'):
@@ -742,7 +745,7 @@ class utility:
                         self.gen.asm.append("\tfmulp"+"\n")
                     else:
                         self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                        self.gen.asm.append("\tmul eax, "+x2+'\n')
+                        self.gen.asm.append("\tmul eax, "+str(x2)+'\n')
             elif(isinstance(x2,Data)):
                 type2=x2.type.type
                 x2addr=self.getAbsoluteAdd(x2)
@@ -765,7 +768,7 @@ class utility:
                         self.gen.asm.append("\tfmulp"+"\n")
                     else:
                         self.gen.asm.append("\tmov eax, "+x2addr+'\n')
-                        self.gen.asm.append("\tmul eax, "+x1+'\n')
+                        self.gen.asm.append("\tmul eax, "+str(x1)+'\n')
             else:
                 if(x1 != 'st'):
                     if(x2 in self.registers):
@@ -891,7 +894,7 @@ class utility:
                         self.gen.asm.append("\tfdivp st(1), st"+"\n")
                     else:
                         self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                        self.gen.asm.append("\tdiv eax, "+x2+'\n')
+                        self.gen.asm.append("\tdiv eax, "+str(x2)+'\n')
             elif(isinstance(x2,Data)):
                 type2=x2.type.type
                 x2addr=self.getAbsoluteAdd(x2)
@@ -914,7 +917,7 @@ class utility:
                         self.gen.asm.append("\tfld QWORD PTR "+self.constMap[x1]+"\n")
                         self.gen.asm.append("\tfdiv st, st(1)"+"\n")
                     else:
-                        self.gen.asm.append("\tmov eax, "+x1+'\n')
+                        self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
                         self.gen.asm.append("\tdiv eax, "+x2addr+'\n')
             else:
                 if(x1 != 'st'):
