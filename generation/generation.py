@@ -252,19 +252,28 @@ class generator:
                             tmp=self.tools.allocateNewReg(self.tools.getEax())
                             self.tools.lock(tmp)
                             self.tools.mov(tmp,self.tools.getEax())
-                            real_arg_list.append([tmp,True])
+                            real_arg_list.append([tmp,0])
+                        elif isinstance(argument,Data) and not argument.offset:
+                            tmp=self.tools.allocateNewReg(self.tools.getEax())
+                            self.tools.lock(tmp)
+                            self.tools.mov(tmp,self.tools.getEax())
+                            real_arg_list.append([argument,1,tmp])
                         else:
-                            real_arg_list.append([argument,False])
+                            real_arg_list.append([argument,2])
                 for list in real_arg_list:
+                    if list[1]==1:
+                        self.tools.mov(self.tools.getEax(),list[2])
                     self.tools.passPara(list[0])
-                    if list[1]==True:
+                    if list[1]==0:
                         self.tools.unLock(list[0])
+                    if list[1]==1:
+                        self.tools.unLock(list[3])
             ret=self.tools.call(operand)
             return ret
         elif node[2]==".":
             if operand.offset==False:
                 self.tools.mov(self.tools.getEax(),0)
-            member=node[3][2]
+            member=node[3][1]
             self.tools.add(self.tools.getEax(),operand.type.offset[member])
             operand.type=operand.type.members[member]
             operand.offset=True
@@ -272,7 +281,7 @@ class generator:
         elif node[2]=="->":
             if operand.offset==False:
                 self.tools.mov(self.tools.getEax(),0)
-            member=node[3][2]
+            member=node[3][1]
             self.tools.add(self.tools.getEax(),operand.type.offset[member])
             operand.type=operand.type.members[member]
             operand.offset=True

@@ -8,8 +8,8 @@ int printf(char *s, int i);
 int main(void)
 {
 
-    a.a=5;
-    printf("%d\n",a.a);
+    a.b=324;
+    printf("%d\n",a.b);
 
     return 0;
 }
