@@ -68,7 +68,7 @@ class utility:
         for v in global_context.literal:
             self.constMap.update({v:(self.constName+str(self.magicNum))})
             self.magicNum+=1
-            self.gen.asm.append(self.constMap[v]+'\n')
+            self.gen.asm.append(self.constMap[v]+":"+'\n')
             if(isinstance(v,str)):
                 self.gen.asm.append("\t.string "+v+'\n')
             else:
@@ -254,7 +254,7 @@ class utility:
         return self.currentMap[data.name]['addr']
         
     
-    def allocateNewReg(self,vName=None):
+    def allocateNewReg(self,vName=5):
         """
             get a new free reg, if full get a mem address
         """
@@ -992,10 +992,12 @@ class utility:
             x2addr=self.getAbsoluteAdd(x2)
             l2=x2.name
 
-        if(l1 in self.currentMap and l2 in self.currentMap):
+        if(isinstance(x1,Data) and isinstance(x2,Data)):
             self.gen.asm.append("\tmov eax, "+x2addr+'\n')
             self.gen.asm.append("\tmov "+x2addr+' eax'+'\n')
         elif(isinstance(x2,Data)):
+            print(x1)
+            print(x2addr)
             self.gen.asm.append('\tmov '+x1+', '+x2addr+'\n')
         elif(isinstance(x1,Data)):
             if(isinstance(x2,int)):
@@ -1019,21 +1021,21 @@ class utility:
                 Type=para.type.type
                 pointerCount=para.type.pointer_count()
                 if(pointerCount>0):
-                    self.gen.asm.append('\tmov DWORD PTR '+"eax, "+self.currentMap[para.name]['addr']+'\n')
+                    self.gen.asm.append("\tmov eax, "+'DWORD PTR '+self.currentMap[para.name]['addr']+'\n')
                     self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                     self.callOffset+=4
                     return
 
                 if(Type=='char'):
-                    self.gen.asm.append('\tmov BYTE PTR '+"eax, "+self.currentMap[para.name]['addr']+'\n')
+                    self.gen.asm.append("\tmov eax, "+'BYTE PTR '+self.currentMap[para.name]['addr']+'\n')
                     self.gen.asm.append('\tmov BYTE PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                     self.callOffset+=4
                 elif(Type=='short'):
-                    self.gen.asm.append('\tmov WORD PTR '+"eax, "+self.currentMap[para.name]['addr']+'\n')
+                    self.gen.asm.append("\tmov eax, "+'WORD PTR '+self.currentMap[para.name]['addr']+'\n')
                     self.gen.asm.append('\tmov WORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                     self.callOffset+=4
                 elif(Type=='int'):
-                    self.gen.asm.append('\tmov DWORD PTR '+"eax, "+self.currentMap[para.name]['addr']+'\n')
+                    self.gen.asm.append("\tmov eax, "+'DWORD PTR '+self.currentMap[para.name]['addr']+'\n')
                     self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                     self.callOffset+=4
                 elif(Type=='const int'):
@@ -1063,7 +1065,7 @@ class utility:
                     raise TypeError("error in passPara")
             else:
                 if(isinstance(para,str)):
-                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+self.constMap[para]+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+'OFFSET FLAT:'+self.constMap[para]+'\n')
                     self.callOffset+=4
                 elif(isinstance(para,float)):
                     pass
