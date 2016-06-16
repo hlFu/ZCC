@@ -50,14 +50,15 @@ class utility:
             value = global_context.local[key]
             if(value.type!='function'):
                 if(value.type=='struct'):
-                    st=self.__parseStruct(key,value)
-                    size=0
-                    for member in st:
-                        if(st[member].type!='double'):
-                            size+=4
-                        else:
-                            size+=8
-                    self.globalV.update(st)
+                    size=value.Size()
+                    # st=self.__parseStruct(key,value)
+                    # size=0
+                    # for member in st:
+                    #     if(st[member].type!='double'):
+                    #         size+=4
+                    #     else:
+                    #         size+=8
+                    # self.globalV.update(st)
                     self.gen.asm.append('\t.comm '+key+',%d,4\n' %(size))
                 self.globalV.update({key:value})
                 if(value.storage_class=='static'):
@@ -179,10 +180,10 @@ class utility:
         return
 
     def getTrue(self):
-        return 'true'
+        return 1
     
     def getFalse(self):
-        return 'false'
+        return 0
 
     def ret(self,returnV=None):
         # for v in self.currentStatic:
@@ -282,7 +283,7 @@ class utility:
             newTmp=self.tmpName+str(self.tmpNum)
             self.tmpNum+=1
             self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.tmpSP)}})
-            return
+            return newTmp
         
         
         reg=self.checkFull()
@@ -295,7 +296,6 @@ class utility:
             self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.tmpSP)}})
             return newTmp
         
-
 
     def lock(self,name):
         if(name in self.registers):
@@ -354,7 +354,7 @@ class utility:
         self.tmpSP-=4
         return addr
     
-    def __vPop(self,reg):
+    def __vPop(self):
         self.tmpSP+=4
 
     def add(self,x1,x2):
@@ -666,7 +666,7 @@ class utility:
     #     '''
     #     self.gen.asm.append('\tsub ebx eax\n')
     
-    def mul(self,x1,x2,returnSpace):
+    def mul(self,x1,x2):
         isFloat=self.checkIsFloat(x1,x2)
         
         if(not isFloat):
@@ -809,7 +809,7 @@ class utility:
         # return returnSpace        
 
 
-    def div(self,x1,x2,returnSpace):
+    def div(self,x1,x2):
         isFloat=self.checkIsFloat(x1,x2)
 
         if(not isFloat):
@@ -1239,40 +1239,71 @@ class utility:
         return 'eax'
     
     def cmp(self,x1,x2):
-        if(isinstance(x1,Data)):
+        if(isinstance(x1,Data),isinstance(x2,Data)):
             x1addr=self.getAbsoluteAdd(x1)
-            x1=x1.name
-        if(isinstance(x2,Data)):
             x2addr=self.getAbsoluteAdd(x2)
-            x2=x2.name
-        if(x1 in self.currentMap and x2 in self.currentMap):
             self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-            self.gen.asm.append('\tcmp '+'eax'+', '+x2+'\n')
+            self.gen.asm.append('\tcmp '+'eax'+', '+x2addr+'\n')
             return
         
-        self.gen.asm.append('\tcmp '+x1+', '+x2+'\n')
+        if(isinstance(x1,Data)):
+            x1=self.getAbsoluteAdd(x1)
+        if(isinstance(x2,Data)):
+            x2=self.getAbsoluteAdd(x2)
+        # if(isinstance(x1,Data)):
+        #     x1addr=self.getAbsoluteAdd(x1)
+        #     x1=x1.name
+        # if(isinstance(x2,Data)):
+        #     x2addr=self.getAbsoluteAdd(x2)
+        #     x2=x2.name
+        # if(x1 in self.currentMap and x2 in self.currentMap):
+        #     self.gen.asm.append("\tmov eax, "+x1addr+'\n')
+        #     self.gen.asm.append('\tcmp '+'eax'+', '+x2+'\n')
+        #     return
+        else:
+            self.gen.asm.append('\tcmp '+x1+', '+x2+'\n')
         return 
     
     def jg(self,label):
         self.gen.asm.append('\tjg '+label+'\n')
+        return
     
     def jge(self,label):
         self.gen.asm.append('\tjge '+label+'\n')
+        return
     
     def jl(self,label):
         self.gen.asm.append('\tjgl '+label+'\n')
+        return
     
     def jle(self,label):
         self.gen.asm.append('\tjle '+label+'\n')
+        return
         
     def je(self,label):
         self.gen.asm.append('\tje '+label+'\n')
+        return
         
     def jne(self,label):
         self.gen.asm.append('\tjne '+label+'\n')
+        return
 
     def jmp(self,label):
         self.gen.asm.append('\tjne '+label+'\n')
+        return
     
     def loop(self,label):
         self.gen.asm.append('\tloop '+label+'\n')
+        return
+    
+    def sal(self,x,offset):
+        if(isinstance(x,Data)):
+            x=self.getAbsoluteAdd(x)
+        self.gen.asm.append('\tsal '+x+str(offset)+'\n')
+        return
+    
+    def sar(self,x,offset):
+        if(isinstance(x,Data)):
+            x=self.getAbsoluteAdd(x)
+        self.gen.asm.append('\tsar '+x+str(offset)+'\n')
+        return
