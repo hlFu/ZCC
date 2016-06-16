@@ -253,7 +253,7 @@ class generator:
                             self.tools.lock(tmp)
                             self.tools.mov(tmp,self.tools.getEax())
                             real_arg_list.append([tmp,0])
-                        elif isinstance(argument,Data) and not argument.offset:
+                        elif isinstance(argument,Data) and argument.offset:
                             tmp=self.tools.allocateNewReg(self.tools.getEax())
                             self.tools.lock(tmp)
                             self.tools.mov(tmp,self.tools.getEax())
@@ -267,7 +267,7 @@ class generator:
                     if list[1]==0:
                         self.tools.unLock(list[0])
                     if list[1]==1:
-                        self.tools.unLock(list[3])
+                        self.tools.unLock(list[2])
             ret=self.tools.call(operand)
             return ret
         elif node[2]==".":
@@ -281,8 +281,10 @@ class generator:
         elif node[2]=="->":
             if operand.offset==False:
                 self.tools.mov(self.tools.getEax(),0)
+            self.tools.mov(self.tools.getEax(),operand)
             member=node[3][1]
             self.tools.add(self.tools.getEax(),operand.type.offset[member])
+            operand.name=self.tools.getNull()
             operand.type=operand.type.members[member]
             operand.offset=True
             return operand

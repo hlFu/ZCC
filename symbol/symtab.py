@@ -139,7 +139,7 @@ def symtab_struct_or_union_specifier(struct_or_union_specifier):
         c_type_class = UnionType
 
     if len(struct_or_union_specifier) == 3:
-        name = type_name + struct_or_union_specifier[2]
+        name = type_name + struct_or_union_specifier[2][1]
         if name not in c_types:
             c_types[name] = CType('Incomplete')
         print 'Add to type record:', name, ':', c_types[name]
