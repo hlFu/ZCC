@@ -66,6 +66,10 @@ class utility:
         self.gen.asm.append('\t.section .rodata\n')
         #get const string and double
         for v in global_context.literal:
+            try:
+                v=float(v)
+            except:
+                pass
             self.constMap.update({v:(self.constName+str(self.magicNum))})
             self.magicNum+=1
             self.gen.asm.append(self.constMap[v]+":"+'\n')
@@ -189,7 +193,7 @@ class utility:
         #         self.gen.asm.append('\tmov '+v+', '+self.currentMap[v]['reg'])
         # if(returnV!=None and self.currentMap[returnV]['reg']!='eax' and self.currentMap[returnV]['reg']!=0):
         #     self.gen.asm.append('\tmov eax, '+self.currentMap[returnV]['reg'])
-        if(funcName=='main'):
+        if(self.funcName=='main'):
             self.gen.asm.append('\tleave\n')
         else:
             index=self.findLast(self.gen.asm,'\tpush ebp\n')
@@ -254,16 +258,18 @@ class utility:
         return self.currentMap[data.name]['addr']
         
     
-    def allocateNewReg(self,vName=5):
+    def allocateNewReg(self,vName):
         """
             get a new free reg, if full get a mem address
         """
-        if(vName in self.currentMap):
-            Type=self.currentMap[vName]['Type']
-        elif(isinstance(vName,str)):
+        if(isinstance(vName,Data)):
+            Type=vName.type.type
+        # if(vName in self.currentMap):
+        #     Type=self.currentMap[vName]['Type']
+        elif(vName in self.currentMap):
             if(vName=='eax'):
                 Type='int'
-            else:
+            elif(vName=='st'):
                 Type='double'
         elif(isinstance(vName,int)):
             Type='int'
@@ -273,15 +279,19 @@ class utility:
             raise TypeError("error in allocateNewReg\n")
 
         if(Type=='double'):
+            newTmp=self.tmpName+str(self.tmpNum)
+            self.tmpNum+=1
+            self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.tmpSP)}})
             return
         
-        newTmp=self.tmpName+str(self.tmpNum)
-        self.tmpNum+=1
+        
         reg=self.checkFull()
         if(reg!=-1):
             self.currentMap.update({newTmp:{'reg':reg,'type':Type,'addr':0}})
             return reg
         else:
+            newTmp=self.tmpName+str(self.tmpNum)
+            self.tmpNum+=1
             self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.tmpSP)}})
             return newTmp
         
@@ -1009,7 +1019,11 @@ class utility:
             if(isinstance(x2,int)):
                 self.gen.asm.append('\tmov '+x1+', %d'%x2+'\n')
             else:
-                self.gen.asm.append('\tmov '+x1+', '+x2+'\n')
+                try:
+                    self.gen.asm.append('\tmov '+x1+', '+self.constMap[x2]+'\n')
+                except Exception,e:
+                    print('ok!\n')
+                    print(self.constMap)
         return x1
         
     def passPara(self,para):
@@ -1235,7 +1249,7 @@ class utility:
             self.gen.asm.append("\tmov eax, "+x1addr+'\n')
             self.gen.asm.append('\tcmp '+'eax'+', '+x2+'\n')
             return
-
+        
         self.gen.asm.append('\tcmp '+x1+', '+x2+'\n')
         return 
     
