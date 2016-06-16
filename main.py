@@ -13,7 +13,7 @@ def preprocess(source):
 
 
 if __name__ == '__main__':
-    codes = preprocess(os.path.abspath("test/a.c"))
+    codes = preprocess(os.path.abspath("test/array.c"))
     pt = parser.parse(codes, lexer=ZCClexer)
     # print "errorCounter=", parser.errorCounter
     printAST(pt)

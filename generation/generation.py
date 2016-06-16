@@ -237,7 +237,7 @@ class generator:
             if operand.offset==False:
                 self.tools.mov(self.tools.getEax(),0)
             index=self.expression_handler[node[3][0]](node[3],context)
-            self.tools.mul(index,operand.type.member_type.size())
+            self.tools.mul(index,operand.type.member_type.Size())
             operand.offset=True
             operand.type=operand.type.member_type
             return operand
