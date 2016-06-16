@@ -25,19 +25,19 @@ void modifyStruct(myStruct* sp)
 
 int main(void)
 {
-    myStruct p;
+    myStruct p[3];
     myStruct *sp;
 
-    sp=&p;
-    p.a=2;
-    p.c='a';
-    p.inner.b=3;
-    p.inner.d=12.3;
+    sp=&p[1];
+    p[1].a=2;
+    p[1].c='a';
+    p[1].inner.b=3;
+    p[1].inner.d=12.3;
     printf("before modified\n");
-    printf("p.a=%d\tp.c=%c\tp.inner.b=%d\tp.inner.d=%lf\n",p.a,p.c,p.inner.b,p.inner.d);
-    modifyStruct(&p);
+    printf("p[1].a=%d\tp[1].c=%c\tp[1].inner.b=%d\tp[1].inner.d=%lf\n",p[1].a,p[1].c,p[1].inner.b,p[1].inner.d);
+    modifyStruct(sp);
     printf("after modified\n");
-    printf("p.a=%d\tp.c=%c\tp.inner.b=%d\tp.inner.d=%lf\n",p.a,p.c,p.inner.b,p.inner.d);
+    printf("p[1].a=%d\tp[1].c=%c\tp[1].inner.b=%d\tp[1].inner.d=%lf\n",p[1].a,p[1].c,p[1].inner.b,p[1].inner.d);
 
     return 0;
 }
