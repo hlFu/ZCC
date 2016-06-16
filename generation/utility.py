@@ -291,6 +291,7 @@ class utility:
         reg=self.checkFull()
         if(reg!=-1):
             newTmp=self.tmpName+str(self.tmpNum)
+            self.tmpNum+=1
             self.currentMap.update({newTmp:{'reg':reg,'type':Type,'addr':0}})
             return reg
         else:
