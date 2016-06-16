@@ -151,7 +151,7 @@ def symtab_struct_or_union_specifier(struct_or_union_specifier):
                 )
         )
     elif len(struct_or_union_specifier) == 6:
-        name = type_name + struct_or_union_specifier[2]
+        name = type_name + struct_or_union_specifier[2][1]
         if name in c_types:
             print_error("Redefine " + struct_or_union_specifier[2], struct_or_union_specifier)
         c_types[name] = c_type_class(members=symtab_struct_declaration_list(struct_or_union_specifier[4]))

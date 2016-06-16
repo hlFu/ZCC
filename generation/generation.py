@@ -121,7 +121,7 @@ class generator:
                 self.tools.cmp(ret,self.tools.getFalse())
                 self.tools.je(label1)
                 self.gen_statement(node[5],context)
-                self.tools.markLable(label1)
+                self.tools.markLabel(label1)
             elif len(node) == 8:
                 label1=self.tools.allocateLabel()
                 label2=self.tools.allocateLabel()
@@ -129,9 +129,9 @@ class generator:
                 self.tools.je(label1)
                 self.gen_statement(node[5],context)
                 self.tools.jmp(label2)
-                self.tools.markLable(label1)
+                self.tools.markLabel(label1)
                 self.gen_statement(node[7],context)
-                self.tools.markLable(label2)
+                self.tools.markLabel(label2)
 
     def gen_jump_statement(self,node,context):
         """
@@ -352,7 +352,7 @@ class generator:
                     ret=self.tools.div(tmp,op2)
             else:
                 ret=self.tools.div(tmp,op2)
-        self.tools.unclock(tmp)
+        self.tools.unLock(tmp)
         return ret
 
 
@@ -370,22 +370,28 @@ class generator:
         :type context:Context
         :rtype: str
         """
-        label_out=self.tools.allocateLabel()
+        label1=self.tools.allocateLabel()
+        label2=self.tools.allocateLabel()
         op1=self.expression_handler[node[1][0]](node[1],context)
         tmp=self.tools.allocateNewReg()
         self.tools.lock(tmp)
         self.tools.mov(tmp,op1)
         op2=self.expression_handler[node[3][0]](node[3],context)
-        cmp(tmp,op2)
+        self.tools.cmp(tmp,op2)
         if node[2]=="<":
-            pass
-        elif node[2]==">":
-            pass
+            self.tools.jl(label1)
         elif node[2]=="<=":
-            pass
+            self.tools.jle(label1)
+        elif node[2]==">":
+            self.tools.jg(label1)
         elif node[2]==">=":
-            pass
-        pass
+            self.tools.jge(label1)
+        self.tools.mov(self.tools.getEax(),0)
+        self.tools.jmp(label2)
+        self.tools.markLabel(label1)
+        self.tools.mov(self.tools.getEax(),1)
+        self.tools.markLabel()
+        return self.tools.getEax()
 
     def gen_equality_expression(self,node,context):
         """
@@ -393,7 +399,25 @@ class generator:
         :type context:Context
         :rtype: str
         """
-        pass
+        label1=self.tools.allocateLabel()
+        label2=self.tools.allocateLabel()
+        op1=self.expression_handler[node[1][0]](node[1],context)
+        tmp=self.tools.allocateNewReg()
+        self.tools.lock(tmp)
+        self.tools.mov(tmp,op1)
+        op2=self.expression_handler[node[3][0]](node[3],context)
+        self.tools.cmp(tmp,op2)
+        if node[2]=="==":
+            self.tools.je(label1)
+        elif node[2]=="!=":
+            self.tools.jne(label1)
+        self.tools.mov(self.tools.getEax(),0)
+        self.tools.jmp(label2)
+        self.tools.markLabel(label1)
+        self.tools.mov(self.tools.getEax(),1)
+        self.tools.markLabel()
+        return self.tools.getEax()
+
 
     def gen_and_expression(self,node,context):
         """
@@ -416,14 +440,15 @@ class generator:
         :type context:Context
         :rtype: str
         """
-        op1=self.expression_handler[node[1][0]](node[1],context)
-        tmp=self.tools.allocateNewReg()
-        self.tools.lock(tmp)
-        self.tools.mov(tmp,op1)
-        op2=self.expression_handler[node[3][0]](node[3],context)
-        ret=self.tools.xor(tmp,op2)
-        self.tools.unLock(tmp)
-        return ret
+        pass
+        # op1=self.expression_handler[node[1][0]](node[1],context)
+        # tmp=self.tools.allocateNewReg()
+        # self.tools.lock(tmp)
+        # self.tools.mov(tmp,op1)
+        # op2=self.expression_handler[node[3][0]](node[3],context)
+        # ret=self.tools.xor(tmp,op2)
+        # self.tools.unLock(tmp)
+        # return ret
 
     def gen_inclusive_or_expression(self,node,context):
         """

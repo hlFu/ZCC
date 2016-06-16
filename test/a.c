@@ -1,10 +1,15 @@
+struct A{
+    int a;
+    int b;
+}a;
+
+
 int printf(char *s, int i);
 int main(void)
 {
-    int i;
-    i=5;
 
-    printf("%d\n",i);
+    a.a=5;
+    printf("%d\n",a.a);
 
     return 0;
 }
