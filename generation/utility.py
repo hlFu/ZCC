@@ -283,6 +283,8 @@ class utility:
             newTmp=self.tmpName+str(self.tmpNum)
             self.tmpNum+=1
             self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.tmpSP)}})
+            newType=CType('double',8,None)
+            newTmp=Data(newTmp,False,newType)
             return newTmp
         
         
@@ -294,8 +296,9 @@ class utility:
             newTmp=self.tmpName+str(self.tmpNum)
             self.tmpNum+=1
             self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.tmpSP)}})
+            newType=CType('int',4,None)
+            newTmp=Data(newTmp,False,newType)
             return newTmp
-        
 
     def lock(self,name):
         if(name in self.registers):
@@ -1260,8 +1263,7 @@ class utility:
         #     self.gen.asm.append("\tmov eax, "+x1addr+'\n')
         #     self.gen.asm.append('\tcmp '+'eax'+', '+x2+'\n')
         #     return
-        else:
-            self.gen.asm.append('\tcmp '+x1+', '+x2+'\n')
+        self.gen.asm.append('\tcmp '+x1+', '+x2+'\n')
         return 
     
     def jg(self,label):
