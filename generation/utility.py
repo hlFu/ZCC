@@ -174,10 +174,10 @@ class utility:
         
         return
 
-    def getTrue():
+    def getTrue(self):
         return 'true'
     
-    def getFalse():
+    def getFalse(self):
         return 'false'
 
     def ret(self,returnV=None):
@@ -189,7 +189,7 @@ class utility:
         #         self.gen.asm.append('\tmov '+v+', '+self.currentMap[v]['reg'])
         # if(returnV!=None and self.currentMap[returnV]['reg']!='eax' and self.currentMap[returnV]['reg']!=0):
         #     self.gen.asm.append('\tmov eax, '+self.currentMap[returnV]['reg'])
-        if(funcName=='main'):
+        if(self.funcName=='main'):
             self.gen.asm.append('\tleave\n')
         else:
             index=self.findLast(self.gen.asm,'\tpush ebp\n')

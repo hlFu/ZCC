@@ -295,7 +295,7 @@ class generator:
                     return ret
             elif operator=="*":
                 if isinstance(operand,Data):
-                    self.tools.mov(self.tools.getEax,operand)
+                    self.tools.mov(self.tools.getEax(),operand)
                     operand.name=self.tools.getNull()
                     operand.offset=True
                     operand.type.is_const.pop()
