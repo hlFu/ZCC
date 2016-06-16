@@ -178,10 +178,10 @@ class utility:
         
         return
 
-    def getTrue():
+    def getTrue(self):
         return 'true'
     
-    def getFalse():
+    def getFalse(self):
         return 'false'
 
     def ret(self,returnV=None):
