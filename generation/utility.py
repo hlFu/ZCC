@@ -145,7 +145,7 @@ class utility:
         self.gen.asm.append('\tpush ebp\n')
         self.gen.asm.append('\tmov ebp, esp\n')
         self.gen.asm.append('\tsub esp, %d\n' % space)
-        self.currentMap=self.newMap(funcName)
+        self.currentMap=self.newMap(funcName,space)
         self.getParaList(funcName)
         self.tmpSP=self.localOffset-8
 
@@ -356,6 +356,7 @@ class utility:
             isFloat=True
         else:
             pass
+        return isFloat
 
     def __vPush(self,reg):
         addr='[esp+%d] '%self.tmpSP+reg

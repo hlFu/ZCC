@@ -9,10 +9,10 @@ int foo()
 
 int main(void)
 {
-    int i;
+    double a;
+    a=1.2;
 //    i=foo();
-    for(i=0;i<4;++i)
-    printf("hello\n");
+    printf("%lf\n",a);
 
     return 0;
 }
