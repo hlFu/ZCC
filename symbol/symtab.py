@@ -757,16 +757,26 @@ def symtab_unary_expression(expression, context):
     :rtype: CType
     """
     if children_are(expression, ['++', 'expression']):
-        return expression_rtype_check(expression[1], context, 'integer')
+        return expression_rtype_check(expression[2], context, 'integer')
     elif children_are(expression, ['--', 'expression']):
-        return expression_rtype_check(expression[1], context, 'integer')
+        return expression_rtype_check(expression[2], context, 'integer')
     elif children_are(expression, ["unary_operator", 'expression']):
         c_type = symtab_expression(expression[2], context)
         return symtab_unary_operator(expression[1], context, c_type)
     elif children_are(expression, ['sizeof', 'expression']):
-        return symtab_expression(expression[2], context).size()
+        size = symtab_expression(expression[2], context).Size()
+        expression[0] = 'primary_expression'
+        expression[1] = TreeNode()
+        expression[1].append('INTEGER')
+        expression[1].append(str(size))
+        return LiteralType(size)
     elif children_are(expression, ['sizeof', 'type_name']):
-        return symtab_type_name(expression[2], context).size()
+        size = symtab_type_name(expression[2], context).Size()
+        expression[0] = 'primary_expression'
+        expression[1] = TreeNode()
+        expression[1].append('INTEGER')
+        expression[1].append(str(size))
+        return LiteralType(size)
 
 
 def symtab_type_name(expression, context):
