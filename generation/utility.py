@@ -719,29 +719,29 @@ class utility:
                 x1addr=self.getAbsoluteAdd(x1)
                 x2addr=self.getAbsoluteAdd(x2)
                 self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                self.gen.asm.append("\tmul eax, "+x2addr+'\n')
+                self.gen.asm.append("\timul eax, "+x2addr+'\n')
             elif(isinstance(x1,Data)):
                 if(x2!='eax'):
                     x1addr=self.getAbsoluteAdd(x1)
                     self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                    self.gen.asm.append("\tmul eax, "+x2+'\n')
+                    self.gen.asm.append("\timul eax, "+str(x2)+'\n')
                 else:
                     x1addr=self.getAbsoluteAdd(x1)
-                    self.gen.asm.append("\tmul eax, "+x1addr+'\n')
+                    self.gen.asm.append("\timul eax, "+x1addr+'\n')
             elif(isinstance(x2,Data)):
                 if(x1!='eax'):
                     x2addr=self.getAbsoluteAdd(x2)
                     self.gen.asm.append("\tmov eax, "+x2addr+'\n')
-                    self.gen.asm.append("\tmul eax, "+x1+'\n')
+                    self.gen.asm.append("\timul eax, "+str(x1)+'\n')
                 else:
                     x2addr=self.getAbsoluteAdd(x2)
-                    self.gen.asm.append("\tmul eax, "+x2addr+'\n')
+                    self.gen.asm.append("\timul eax, "+x2addr+'\n')
             else:
                 if(x1=='eax'):
-                    self.gen.asm.append("\tmul eax, "+x2+'\n')
+                    self.gen.asm.append("\timul eax, "+str(x2)+'\n')
                 else:
-                    self.gen.asm.append("\tmov eax, "+x1+'\n')
-                    self.gen.asm.append("\tmul eax, "+x2+'\n')
+                    self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
+                    self.gen.asm.append("\timul eax, "+str(x2)+'\n')
             
             return 'eax'
         
