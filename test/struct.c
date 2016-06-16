@@ -14,20 +14,31 @@ typedef struct
     }inner;
 }myStruct;
 
-void printStruct(myStruct* s)
+void modifyStruct(myStruct* sp)
 {
-    printf("s.a=%d\ns.c=%c\ns.inner.b=%d\ns.inner.d=%lf\n",s->a,s->c,s->inner.b,s->inner.d);
+    sp->a=4;
+    sp->c='!';
+    sp->inner.b=5;
+    sp->inner.d=55.2;
+    return;
 }
 
 int main(void)
 {
-    myStruct s;
+    myStruct p;
+    myStruct *sp;
 
-    s.a=2;
-    s.c='a';
-    s.inner.b=3;
-    s.inner.d=12.3;
-    printStruct(&s);
+    sp=&p;
+    p.a=2;
+    p.c='a';
+    p.inner.b=3;
+    p.inner.d=12.3;
+    printf("before modified\n");
+    printf("p.a=%d\tp.c=%c\tp.inner.b=%d\tp.inner.d=%lf\n",p.a,p.c,p.inner.b,p.inner.d);
+    modifyStruct(&p);
+    printf("after modified\n");
+    printf("p.a=%d\tp.c=%c\tp.inner.b=%d\tp.inner.d=%lf\n",p.a,p.c,p.inner.b,p.inner.d);
 
     return 0;
 }
+

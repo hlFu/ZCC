@@ -12,9 +12,9 @@ increment
 preprocessing
 */
 #include "stdio.h"
-#define UPPERCASE_A 'A'
-#define LOWERCASE_A 'a'
-#define LOWERCASE_Z 'z'
+#define UPPERCASE_A 65
+#define LOWERCASE_A 97
+#define LOWERCASE_Z 122
 int fib(int n);
 int n,i;
 int main(int argc,char **argv)
@@ -22,14 +22,14 @@ int main(int argc,char **argv)
     double d,f;
     char *s;                   
 
-    s=argv[1];
+    s=*argv;
     while(*s!=0)
     {
         if(*s<=LOWERCASE_Z&&*s>=LOWERCASE_A)
-            *s=*s+UPPERCASE_A-LOWERCASE_A;
+            *s=*s+(UPPERCASE_A-LOWERCASE_A);
         ++s;
     }    
-    printf("%s\n",argv[1]);
+    printf("%s\n",*argv);
 
     scanf("%d",&n);
     printf("%d\n",fib(n));
@@ -51,9 +51,6 @@ int main(int argc,char **argv)
 
 int fib(int n)
 {
-    //static count=0;
-    //count++;
-    //printf("count=%d\n",count);
     if(n>1)
     {
         return fib(n-1)+fib(n-2);

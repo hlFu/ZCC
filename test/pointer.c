@@ -6,6 +6,7 @@ int i;
 
 void print_int(){
     printf("%d\n", i);
+    return;
 }
 
 void (*high_order_func(int n)) (){

@@ -13,12 +13,12 @@ def preprocess(source):
 
 
 if __name__ == '__main__':
-    codes = preprocess(os.path.abspath("test/a.c"))
+    codes = preprocess(os.path.abspath("test/pointer.c"))
     pt = parser.parse(codes, lexer=ZCClexer)
     # print "errorCounter=", parser.errorCounter
     printAST(pt)
     # with open("test.s","w") as output:
-    # print global_context
+    print global_context
     # print error
     # printAST(global_context.local['main'].compound_statement.ast)
     gen = generator()

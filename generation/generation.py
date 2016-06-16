@@ -279,8 +279,6 @@ class generator:
             operand.offset=True
             return operand
         elif node[2]=="->":
-            if operand.offset==False:
-                self.tools.mov(self.tools.getEax(),0)
             self.tools.mov(self.tools.getEax(),operand)
             member=node[3][1]
             self.tools.add(self.tools.getEax(),operand.type.offset[member])
@@ -348,7 +346,7 @@ class generator:
                         ret=self.tools.sal(tmp,str(self.exp2.index(num)))
                     else:
                         ret=self.tools.mul(tmp,op2)
-                except TypeError:
+                except Exception:
                     ret=self.tools.mul(tmp,op2)
             else:
                 ret=self.tools.mul(tmp,op2)
@@ -360,7 +358,7 @@ class generator:
                         ret=self.tools.sar(tmp,str(self.exp2.index(num)))
                     else:
                         ret=self.tools.div(tmp,op2)
-                except TypeError:
+                except Exception:
                     ret=self.tools.div(tmp,op2)
             else:
                 ret=self.tools.div(tmp,op2)
@@ -483,16 +481,20 @@ class generator:
         :type context:Context
         :rtype: str
         """
-        label_out=self.tools.allocateLabel()
+        label1=self.tools.allocateLabel()
+        label2=self.tools.allocateLabel()
         op1=self.expression_handler[node[1][0]](node[1],context)
-        left=self.tools.cmp(op1,self.tools.getFalse())
-        self.tools.je(label_out)
-
+        self.tools.cmp(op1,self.tools.getFalse())
+        self.tools.je(label1)
         op2=self.expression_handler[node[3][0]](node[3],context)
-        right=self.tools.cmp(op2,self.tools.getFalse())
-
-        self.tools.markLabel(label_out)
-        return right
+        self.tools.cmp(op2,self.tools.getFalse())
+        self.tools.je(label1)
+        self.tools.mov(self.tools.getEax(),1)
+        self.tools.jmp(label2)
+        self.tools.markLabel(label1)
+        self.tools.mov(self.tools.getEax(),0)
+        self.tools.markLabel(label2)
+        return self.tools.getEax()
 
     def gen_logical_or_expression(self,node,context):
         """
@@ -500,16 +502,21 @@ class generator:
         :type context:Context
         :rtype: str
         """
-        label_out=self.tools.allocateLabel()
+        label1=self.tools.allocateLabel()
+        label2=self.tools.allocateLabel()
         op1=self.expression_handler[node[1][0]](node[1],context)
-        left=self.tools.cmp(op1,self.tools.getFalse())
-        self.tools.jne(label_out)
-
+        self.tools.cmp(op1,self.tools.getFalse())
+        self.tools.jne(label1)
         op2=self.expression_handler[node[3][0]](node[3],context)
-        right=self.tools.cmp(op2,self.tools.getFalse())
+        self.tools.cmp(op2,self.tools.getFalse())
+        self.tools.jne(label1)
+        self.tools.mov(self.tools.getEax(),0)
+        self.tools.jmp(label2)
+        self.tools.markLabel(label1)
+        self.tools.mov(self.tools.getEax(),1)
+        self.tools.markLabel(label2)
+        return self.tools.getEax()
 
-        self.tools.markLabel(label_out)
-        return right
 
     def gen_conditional_expression(self,node,context):
         """
