@@ -313,7 +313,8 @@ class generator:
                     return operand
         else:
             if node[1]=="++":
-                self.tools.add(operand,1)
+                ret=self.tools.add(operand,1)
+                self.tools.mov(operand,ret)
                 return operand
             elif node[1]=="--":
                 self.tools.sub(operand,1)

@@ -417,7 +417,7 @@ class utility:
                 if(x2!='eax'):
                     x1addr=self.getAbsoluteAdd(x1)
                     self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                    self.gen.asm.append("\tadd eax, "+x2+'\n')
+                    self.gen.asm.append("\tadd eax, "+str(x2)+'\n')
                 else:
                     x1addr=self.getAbsoluteAdd(x1)
                     self.gen.asm.append("\tadd eax, "+x1addr+'\n')
@@ -425,7 +425,7 @@ class utility:
                 if(x1!='eax'):
                     x2addr=self.getAbsoluteAdd(x2)
                     self.gen.asm.append("\tmov eax, "+x2addr+'\n')
-                    self.gen.asm.append("\tadd eax, "+x1+'\n')
+                    self.gen.asm.append("\tadd eax, "+str(x1)+'\n')
                 else:
                     x2addr=self.getAbsoluteAdd(x2)
                     self.gen.asm.append("\tadd eax, "+x2addr+'\n')
@@ -1161,10 +1161,12 @@ class utility:
     def getParaList(self,funcName):
         self.paraOffset=8
         paraList=global_context.local[funcName].parameter_list
+        if len(paraList)==1 and paraList[0][1].type=="void":
+            return
         for para in paraList:
             #para:str Type:string
-            Type=paraList[para].type
-            pointNum=paraList[para].pointer_count()
+            Type=para[1].type
+            pointNum=para[1].pointer_count()
             localAddr="[esp+%d]"%self.localOffset
             if(pointNum>0):
                 self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
