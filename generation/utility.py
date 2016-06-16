@@ -42,6 +42,7 @@ class utility:
         self.callOffset=0
         self.funcName=None
         self.localOffset=0
+        self.paraOffset=0
 
         
     def globalInitialize(self):
@@ -367,6 +368,43 @@ class utility:
     def add(self,x1,x2):
         isFloat=self.checkIsFloat(x1,x2)
         
+        if(isinstance(x1,Data)):
+            pointNum=x1.type.pointer_count() 
+            x1addr=self.getAbsoluteAdd(x1)
+            if(pointNum==1):
+                if(isinstance(x2,Data)):
+                    x2addr=self.getAbsoluteAdd(x2)
+                    # reg=self.allocateNewReg(x2)
+                    # if(reg in self.registers):
+                    #     self.gen.asm.append("\tmov "+reg+", "+x2addr+'\n')
+                    #     self.gen.asm.append("\tmov eax, "+x1addr+'\n')
+                    #     self.gen.asm.append("\tlea eax, "+'[%d*'%(int(x2.type.size/2))+reg+'+eax]'+'\n')
+                    # else:
+                    self.gen.asm.append("\tmov eax, "+x2addr+'\n')
+                    self.gen.asm.append("\tsal eax, "+str(int(x1.type.size/2))+'\n')
+                    self.gen.asm.append("\tadd eax, "+x1addr+'\n')
+                else:
+                    size=x2*x1.type.size
+                    self.gen.asm.append("\tmov eax, "+x2addr+'\n')
+                    self.gen.asm.append("\tadd eax, "+str(size)+'\n')
+            elif(pointNum>1):
+                if(isinstance(x2,Data)):
+                    x2addr=self.getAbsoluteAdd(x2)
+                    # reg=self.allocateNewReg(x2)
+                    # if(reg in self.registers):
+                    #     self.gen.asm.append("\tmov "+reg+", "+x2addr+'\n')
+                    #     self.gen.asm.append("\tmov eax, "+x1addr+'\n')
+                    #     self.gen.asm.append("\tlea eax, "+'[%d*'%(int(x2.type.size/2))+reg+'+eax]'+'\n')
+                    # else:
+                    self.gen.asm.append("\tmov eax, "+x2addr+'\n')
+                    self.gen.asm.append("\tsal eax, "+str(2)+'\n')
+                    self.gen.asm.append("\tadd eax, "+x1addr+'\n')
+                else:
+                    size=4*x2
+                    self.gen.asm.append("\tmov eax, "+x2addr+'\n')
+                    self.gen.asm.append("\tadd eax, "+str(size)+'\n')
+            return 'eax'
+
         if(not isFloat):
             if(isinstance(x1,Data) and isinstance(x2,Data)):
                 x1addr=self.getAbsoluteAdd(x1)
@@ -1031,7 +1069,8 @@ class utility:
                     print('ok!\n')
                     print(self.constMap)
         return x1
-        
+
+
     def passPara(self,para):
             if(para in self.registers):
                 self.gen.asm.append('\tmov DWORD DWORD '+'[esp+%d], '%self.callOffset+' eax'+'\n')
@@ -1110,7 +1149,36 @@ class utility:
     
     def getNull(self):
         return 0
-        
+    
+    def getParaList(self,funcName):
+        self.paraOffset=8
+        paraList=global_context.local[funcName].parameter_list
+        for para in paraList:
+            #para:str Type:string
+            Type=paraList[para].type
+            pointNum=paraList[para].pointer_count()
+            if(pointNum>0):
+                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
+                self.gen.asm.append('\tmov DWORD PTR '+"[esp+%d]"%self.localOffset+' eax\n')
+                self.paraOffset+=4
+                self.localOffset+=4
+            elif(Type=='char'):
+                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
+                self.gen.asm.append('\tmov BYTE PTR '+"[esp+%d]"%self.localOffset+' al\n')
+                self.paraOffset+=4
+                self.localOffset+=4
+            elif(Type=='int'):
+                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
+                self.gen.asm.append('\tmov DWORD PTR '+"[esp+%d]"%self.localOffset+' eax\n')
+                self.paraOffset+=4
+                self.localOffset+=4
+            elif(Type=='double'):
+                for i in range(0,2):
+                    self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+"[esp+%d]"%self.localOffset+' eax\n')
+                    self.paraOffset+=4
+                    self.localOffset+=4
+        return
 
     def call(self,func,parameters=None):
         '''
@@ -1129,6 +1197,7 @@ class utility:
             self.gen.asm.append('\tcall '+func.name+'\n')
         else:
             self.gen.asm.append('\tcall '+func+'\n')
+        return 'eax'
     
     def And(self,x1,x2):
         if(isinstance(x1,Data)):
