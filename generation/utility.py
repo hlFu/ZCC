@@ -1127,6 +1127,7 @@ class utility:
                     self.gen.asm.append('\tmov '+x1+', '+self.constMap[x2]+'\n')
                 except Exception,e:
                     # print(self.constMap)
+                    pass
         return x1
 
 
