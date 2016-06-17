@@ -1,0 +1,20 @@
+1. 基本功能：
+    计算add sub mul div 等
+    逻辑and or not
+    跳转jmp je jg jl
+    移位sal sar
+    函数call ret
+    堆栈push pop
+    全局数据 常量浮点数、字符串、global、static变量
+    浮点数运算fld fstp fadd fsub fmul fdiv
+
+2. 优化
+    寄存器优化：
+        将ebx,ecx,edx作为临时变量的暂存区域
+        将esi edi作为eax的交换区
+    指令优化：
+        *2 / 4 / 8。。。 ->sal
+        lea 2*eax+offset -> reg
+
+3. 支持特性：
+    看样例
