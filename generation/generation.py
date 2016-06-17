@@ -15,7 +15,7 @@ class generator:
         self.asm = []
         self.tools = utility(self)
         self.exp2=[2**x for x in range(32)]
-        print(self.exp2)
+        # print(self.exp2)
         self.expression_handler = {
             'primary_expression': self.gen_primary_expression,
             'postfix_expression': self.gen_postfix_expression,
@@ -538,7 +538,7 @@ class generator:
         self.tools.lock(tmp)
         self.tools.mov(tmp,right)
         left=self.expression_handler[node[1][0]](node[1],context)
-        print(left)
+        # print(left)
         if operator=="=":
             self.tools.mov(left,tmp)
         self.tools.unLock(tmp)
