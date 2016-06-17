@@ -18,7 +18,7 @@ if __name__ == '__main__':
     # print "errorCounter=", parser.errorCounter
     printAST(pt)
     # with open("test.s","w") as output:
-    print global_context
+    # print global_context
     # print error
     # printAST(global_context.local['main'].compound_statement.ast)
     gen = generator()
