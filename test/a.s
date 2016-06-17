@@ -1,42 +1,56 @@
 	.file	"a.c"
-	.def	___main;	.scl	2;	.type	32;	.endef
-	.section .rdata,"dr"
-LC0:
-	.ascii "%d\0"
+	.intel_syntax noprefix
+	.section	.rodata
+.LC0:
+	.string	"hello"
+.LC1:
+	.string	"%d\n"
 	.text
-.globl _main
-	.def	_main;	.scl	2;	.type	32;	.endef
-_main:
-	pushl	%ebp
-	movl	%esp, %ebp
-	subl	$24, %esp
-	andl	$-16, %esp
-	movl	$0, %eax
-	addl	$15, %eax
-	addl	$15, %eax
-	shrl	$4, %eax
-	sall	$4, %eax
-	movl	%eax, -12(%ebp)
-	movl	-12(%ebp), %eax
-	call	__alloca
-	call	___main
-	movl	$3, -4(%ebp)
-	cmpl	$0, -4(%ebp)
-	je	L2
-	movl	$1, -8(%ebp)
-	jmp	L3
-L2:
-	movl	$2, -8(%ebp)
-L3:
-	movl	-8(%ebp), %eax
-	movl	%eax, -4(%ebp)
-	movl	-4(%ebp), %eax
-	movl	%eax, 4(%esp)
-	movl	$LC0, (%esp)
-	call	_printf
-	movl	$0, %eax
+	.globl	foo
+	.type	foo, @function
+foo:
+	push	ebp
+	mov	ebp, esp
+	sub	esp, 8
+	sub	esp, 12
+	push	OFFSET FLAT:.LC0
+	call	puts
+	add	esp, 16
+	sub	esp, 8
+	push	DWORD PTR [ebp+8]
+	push	OFFSET FLAT:.LC1
+	call	printf
+	add	esp, 16
+	mov	eax, DWORD PTR [ebp+8]
 	leave
 	ret
-	.comm	_f, 16	 # 4
-	.comm	_j, 16	 # 4
-	.def	_printf;	.scl	2;	.type	32;	.endef
+	.size	foo, .-foo
+	.globl	main
+	.type	main, @function
+main:
+	lea	ecx, [esp+4]
+	and	esp, -16
+	push	DWORD PTR [ecx-4]
+	push	ebp
+	mov	ebp, esp
+	push	ecx
+	sub	esp, 20
+	mov	DWORD PTR [ebp-12], 2
+	sub	esp, 12
+	push	DWORD PTR [ebp-12]
+	call	foo
+	add	esp, 16
+	mov	DWORD PTR [ebp-16], eax
+	sub	esp, 8
+	push	DWORD PTR [ebp-16]
+	push	OFFSET FLAT:.LC1
+	call	printf
+	add	esp, 16
+	mov	eax, 0
+	mov	ecx, DWORD PTR [ebp-4]
+	leave
+	lea	esp, [ecx-4]
+	ret
+	.size	main, .-main
+	.ident	"GCC: (GNU) 5.3.1 20160406 (Red Hat 5.3.1-6)"
+	.section	.note.GNU-stack,"",@progbits
