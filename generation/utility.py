@@ -12,7 +12,7 @@ class utility:
         # record all map of scope
         self.mapStack=[]
         # global record for register uses
-        self.registers={'eax':1,'st':1,'ebx':0,'ecx':0,'edx':0,'esi':0,'edi':0}
+        self.registers={'eax':1,'st':1,'ebx':0,'ecx':0,'edx':0}
         # all global v
         self.globalV={}
         # all statics v
@@ -51,22 +51,22 @@ class utility:
             print(key)
             value = global_context.local[key]
             if(value.type!='function'):
-                if(value.type=='struct'):
-                    size=value.Size()
-                    # st=self.__parseStruct(key,value)
-                    # size=0
-                    # for member in st:
-                    #     if(st[member].type!='double'):
-                    #         size+=4
-                    #     else:
-                    #         size+=8
-                    # self.globalV.update(st)
-                    self.gen.asm.append('\t.comm '+key+',%d,4\n' %(size))
-                self.globalV.update({key:value})
-                continue
+                # if(value.type=='struct'):
+                #     size=value.Size()
+                #     # st=self.__parseStruct(key,value)
+                #     # size=0
+                #     # for member in st:
+                #     #     if(st[member].type!='double'):
+                #     #         size+=4
+                #     #     else:
+                #     #         size+=8
+                #     # self.globalV.update(st)
+                #     self.gen.asm.append('\t.comm '+key+',%d,4\n' %(size))
+                #     continue
                 if(value.storage_class=='static'):
                     self.gen.asm.append('\t.local '+key+'\n')
-                self.gen.asm.append('\t.comm '+key+',%d,4\n' %(value.size))
+                self.gen.asm.append('\t.comm '+key+',%d,4\n' %(value.Size()))
+                self.globalV.update({key:value})
         self.gen.asm.append('\t.section .rodata\n')
         #get const string and double
         for v in global_context.literal:
@@ -80,7 +80,7 @@ class utility:
             if(isinstance(v,str)):
                 self.gen.asm.append("\t.string "+v+'\n')
             else:
-                self.gen.asm.append("\t.double"+str(v)+'\n')
+                self.gen.asm.append("\t.double "+str(v)+'\n')
 
         self.gen.asm.append('\t.text\n')
 
@@ -102,7 +102,7 @@ class utility:
     def showMap(self):
         print(self.currentMap)
 
-    def newMap(self,funcName,space=32,reserve=0):
+    def newMap(self,funcName,space=32,reserve=12):
         self.localOffset=space-reserve
         map={}
         map.update({0:{'reg':0,'type':None,'addr':0}})
@@ -111,6 +111,7 @@ class utility:
             s_class=value.storage_class
             Type=value.type
             size=value.Size()
+            print(size)
             # if(Type == 'struct'):
             #     st=self.__parseStruct(v,value)
             #     for member in st:
@@ -137,7 +138,7 @@ class utility:
         return map
     
     def newFunc(self,funcName):
-        space=64
+        space=500
         self.funcName=funcName
         self.gen.asm.append('\t.globl '+funcName+'\n')
         self.gen.asm.append('\t.type '+funcName+', @function\n')
@@ -145,7 +146,11 @@ class utility:
         self.gen.asm.append('\tpush ebp\n')
         self.gen.asm.append('\tmov ebp, esp\n')
         self.gen.asm.append('\tsub esp, %d\n' % space)
-        self.currentMap=self.newMap(funcName)
+        if(funcName!='main'):
+            self.gen.asm.append('\tmov [ebp-4], ebx\n')
+            self.gen.asm.append('\tmov [ebp-8], ecx\n')
+            self.gen.asm.append('\tmov [ebp-12], edx\n')
+        self.currentMap=self.newMap(funcName,space)
         self.getParaList(funcName)
         self.tmpSP=self.localOffset-8
 
@@ -157,24 +162,23 @@ class utility:
     def newScope(self,scope):
         self.mapStack.append(self.currentMap)
         if(isinstance(scope,Context)):
-            for V in scope.local:
+            for v in scope.local:
                 value=scope.local[v]
                 s_class=value.storage_class
                 Type=value.type
-                size=value.size()
+                size=value.Size()
                 if(s_class == 'static'):
                     v=v+'%d' % self.magicNum
                     self.magicNum+=4
-                    map.update({v:{'reg':0,'type':Type,'addr':v}})
+                    self.currentMap.update({v:{'reg':0,'type':Type,'addr':v}})
                     self.currentStatic.update({v:Type})
                     self.statics.update({v:Type})
                     continue
-                map.update({v:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.localOffset-size)}})
+                self.currentMap.update({v:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.localOffset-size)}})
                 self.localOffset-=size
         return
 
-        raise TypeError("error in newScope!\n")
-    
+
     def endScope(self):
         self.currentMap=self.mapStack.pop()
         
@@ -199,10 +203,14 @@ class utility:
             self.gen.asm.append('\tleave\n')
         else:
             index=self.findLast(self.gen.asm,'\tpush ebp\n')
-            for reg in self.dirty:
-                if(self.dirty[reg]!=0):
-                    self.gen.asm.insert(index,'\tpush '+reg+'\n')
-                    self.gen.asm.append('\tpop '+reg+'\n')
+            if self.funcName!="main":
+                self.gen.asm.append('\tmov ebx, [ebp-4]\n')
+                self.gen.asm.append('\tmov ecx, [ebp-8]\n')
+                self.gen.asm.append('\tmov edx, [ebp-12]\n')
+            # for reg in self.dirty:
+            #     if(self.dirty[reg]!=0):
+            #         self.gen.asm.insert(index,'\tpush '+reg+'\n')
+            #         self.gen.asm.append('\tpop '+reg+'\n')
             self.gen.asm.append('\tleave\n')
         self.gen.asm.append('\tret\n')
 
@@ -302,7 +310,7 @@ class utility:
             newTmp=self.tmpName+str(self.tmpNum)
             self.tmpNum+=1
             self.currentMap.update({newTmp:{'reg':0,'type':Type,'addr':'[esp+%d]'%(self.tmpSP)}})
-            newType=CType('int',4,None)
+            newType=CType('int',4)
             newTmp=Data(newTmp,False,newType)
             return newTmp
 
@@ -322,7 +330,7 @@ class utility:
 
         self.tmpSP+=8
         
-        self.currentMap.pop(name)
+        self.currentMap.pop(name.name)
         
         return
     
@@ -347,6 +355,8 @@ class utility:
             isFloat=True
         else:
             pass
+        if isFloat:
+            return isFloat
         
         if(isinstance(x2,Data)):
             isFloat=(x2.type.type=='double')
@@ -356,15 +366,16 @@ class utility:
             isFloat=True
         else:
             pass
+        return isFloat
 
     def __vPush(self,reg):
-        addr='[esp+%d] '%self.tmpSP+reg
-        self.gen.asm.append('\tmov '+addr)
-        self.tmpSP-=4
+        addr='[esp+%d] '%self.tmpSP
+        self.gen.asm.append('\tfstp QWORD PTR '+addr+'\n')
+        self.tmpSP-=8
         return addr
     
     def __vPop(self):
-        self.tmpSP+=4
+        self.tmpSP+=8
 
     def add(self,x1,x2):
         isFloat=self.checkIsFloat(x1,x2)
@@ -432,10 +443,12 @@ class utility:
             else:
                 if(x1=='eax'):
                     self.gen.asm.append("\tadd eax, "+str(x2)+'\n')
+                elif(x2=='eax'):
+                    self.gen.asm.append("\tadd eax, "+str(x1)+'\n')
                 else:
                     self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
                     self.gen.asm.append("\tadd eax, "+str(x2)+'\n')
-            
+
             return 'eax'
         
         else:
@@ -471,6 +484,7 @@ class utility:
                     if(type1!='double'):
                         x2=int(x2)
                     if(type1=='double'):
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfld QWORD PTR "+self.constMap[x2]+"\n")
                         self.gen.asm.append("\tfaddp"+"\n")
                     else:
@@ -571,7 +585,7 @@ class utility:
                 if(x2!='eax'):
                     x1addr=self.getAbsoluteAdd(x1)
                     self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                    self.gen.asm.append("\tsub eax, "+x2+'\n')
+                    self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
                 else:
                     x1addr=self.getAbsoluteAdd(x1)
                     reg=self.allocateNewReg('eax')
@@ -582,16 +596,16 @@ class utility:
                 if(x1!='eax'):
                     x2addr=self.getAbsoluteAdd(x2)
                     self.gen.asm.append("\tmov eax, "+x2addr+'\n')
-                    self.gen.asm.append("\tsub eax, "+x1+'\n')
+                    self.gen.asm.append("\tsub eax, "+str(x1)+'\n')
                 else:
                     x2addr=self.getAbsoluteAdd(x2)
                     self.gen.asm.append("\tsub eax, "+x2addr+'\n')
             else:
                 if(x1=='eax'):
-                    self.gen.asm.append("\tsub eax, "+x2+'\n')
+                    self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
                 else:
-                    self.gen.asm.append("\tmov eax, "+x1+'\n')
-                    self.gen.asm.append("\tsub eax, "+x2+'\n')
+                    self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
+                    self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
         
             return 'eax'
 
@@ -624,13 +638,14 @@ class utility:
                         self.gen.asm.append("\tfisub DWORD PTR "+x2addr+"\n")
                         self.__vPop()
                     else:
-                        self.gen.asm.append("\tfld DWORD PTR "+x1addr+"\n")
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfsubp st(1), st"+"\n")
                 # x2 is imm
                 else:
                     if(type1!='double'):
                         x2=int(x2)
                     if(type1=='double'):
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfld QWORD PTR "+self.constMap[x2]+"\n")
                         self.gen.asm.append("\tfsubp st(1), st"+"\n")
                     else:
@@ -644,7 +659,7 @@ class utility:
                         self.gen.asm.append("\tfsub QWORD PTR "+x2addr+"\n")
                     elif(type2=='double'):
                         x1addr=self.__vPush(x1)
-                        self.gen.asm.append("\tfld DWORD PTR "+x1addr+"\n")
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfld QWORD PTR "+x2addr+"\n")
                         self.gen.asm.append("\tfsubp st(1), st "+"\n")
                         self.__vPop()
@@ -664,7 +679,7 @@ class utility:
                 if(x1 != 'st'):
                     if(x2 in self.registers):
                         x1addr=self.__vPush(x1)
-                        self.gen.asm.append("\tfld DWORD PTR "+x1addr+"\n")
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfsub st, st(1)"+"\n")
                         self.__vPop()
                     else:
@@ -741,6 +756,8 @@ class utility:
             else:
                 if(x1=='eax'):
                     self.gen.asm.append("\timul eax, "+str(x2)+'\n')
+                elif(x2=='eax'):
+                    self.gen.asm.append("\timul eax, "+str(x1)+'\n')
                 else:
                     self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
                     self.gen.asm.append("\timul eax, "+str(x2)+'\n')
@@ -780,11 +797,12 @@ class utility:
                     if(type1!='double'):
                         x2=int(x2)
                     if(type1=='double'):
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfld QWORD PTR "+self.constMap[x2]+"\n")
                         self.gen.asm.append("\tfmulp"+"\n")
                     else:
                         self.gen.asm.append("\tmov eax, "+x1addr+'\n')
-                        self.gen.asm.append("\tmul eax, "+str(x2)+'\n')
+                        self.gen.asm.append("\timul eax, "+str(x2)+'\n')
             elif(isinstance(x2,Data)):
                 type2=x2.type.type
                 x2addr=self.getAbsoluteAdd(x2)
@@ -807,7 +825,7 @@ class utility:
                         self.gen.asm.append("\tfmulp"+"\n")
                     else:
                         self.gen.asm.append("\tmov eax, "+x2addr+'\n')
-                        self.gen.asm.append("\tmul eax, "+str(x1)+'\n')
+                        self.gen.asm.append("\timul eax, "+str(x1)+'\n')
             else:
                 if(x1 != 'st'):
                     if(x2 in self.registers):
@@ -817,7 +835,7 @@ class utility:
                     else:
                         x2=int(x2)
                         self.gen.asm.append("\tmov eax, "+x1+'\n')
-                        self.gen.asm.append("\tmul eax, "+str(x2)+'\n')
+                        self.gen.asm.append("\timul eax, "+str(x2)+'\n')
                 else:
                     if(x2 in self.registers):
                         x2addr=self.__vPush(x2)
@@ -922,13 +940,14 @@ class utility:
                         self.gen.asm.append("\tfidiv DWORD PTR "+x2addr+"\n")
                         self.__vPop()
                     else:
-                        self.gen.asm.append("\tfld DWORD PTR "+x1addr+"\n")
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfdivp st(1), st"+"\n")
                 # x2 is imm
                 else:
                     if(type1!='double'):
                         x2=int(x2)
                     if(type1=='double'):
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfld QWORD PTR "+self.constMap[x2]+"\n")
                         self.gen.asm.append("\tfdivp st(1), st"+"\n")
                     else:
@@ -942,7 +961,7 @@ class utility:
                         self.gen.asm.append("\tfdiv QWORD PTR "+x2addr+"\n")
                     elif(type2=='double'):
                         x1addr=self.__vPush(x1)
-                        self.gen.asm.append("\tfld DWORD PTR "+x1addr+"\n")
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfld QWORD PTR "+x2addr+"\n")
                         self.gen.asm.append("\tfdivp st(1), st "+"\n")
                         self.__vPop()
@@ -962,7 +981,7 @@ class utility:
                 if(x1 != 'st'):
                     if(x2 in self.registers):
                         x1addr=self.__vPush(x1)
-                        self.gen.asm.append("\tfld DWORD PTR "+x1addr+"\n")
+                        self.gen.asm.append("\tfld QWORD PTR "+x1addr+"\n")
                         self.gen.asm.append("\tfdiv st, st(1)"+"\n")
                         self.__vPop()
                     else:
@@ -1015,10 +1034,15 @@ class utility:
         isFloat=self.checkIsFloat(x1,x2)
         if(isFloat):
             if(x2 in self.registers):
-                x1addr=self.__vPush(x2)
                 if(x2!='st'):
-                    self.gen.asm.append("\tfld DWORD PTR "+x1addr+"\n")
-                self.__vPop()
+                    x2addr=self.__vPush(x2)
+                    self.gen.asm.append("\tfld QWORD PTR "+x2addr+"\n")
+                    self.__vPop()
+                else:
+                    x1addr=self.getAbsoluteAdd(x1)
+                    self.gen.asm.append("\tfstp QWORD PTR "+x1addr+"\n")
+                    return
+
             elif(isinstance(x2,float)):
                 self.gen.asm.append("\tfld QWORD PTR "+self.constMap[x2]+"\n")
             elif(isinstance(x2,Data)):
@@ -1044,27 +1068,57 @@ class utility:
         l2=None
         if(isinstance(x1,Data) and isinstance(x2,Data)):
             pointNum=x2.type.pointer_count()
-            if(pointNum>0 and x2.type.type=='function'):
+            if(pointNum>=0 and x2.type.type=='function'):
                 x1addr=self.getAbsoluteAdd(x1)
                 self.gen.asm.append("\tmov "+x1addr+", OFFSET FLAT:"+x2.name+'\n')
+                return x1
 
         if(isinstance(x1,Data)):
             x1addr=self.getAbsoluteAdd(x1)
             l1=x1.name
         if(isinstance(x2,Data)):
+            pointNum=x2.type.pointer_count()
+            if(pointNum>=0 and x2.type.type=='function'):
+                self.gen.asm.append("\tmov "+str(x1)+", OFFSET FLAT:"+x2.name+'\n')
+                return x1
             x2addr=self.getAbsoluteAdd(x2)
             l2=x2.name
 
+
         if(isinstance(x1,Data) and isinstance(x2,Data)):
-            self.gen.asm.append("\tmov eax, "+x2addr+'\n')
-            self.gen.asm.append("\tmov "+x2addr+' eax'+'\n')
+            if(x2.type.type=='char' and x2.type.pointer_count()==0):
+                self.gen.asm.append("\tmovsx eax, BYTE PTR"+x2addr+'\n')
+                self.gen.asm.append("\tmov BYTE PTR "+x1addr+', eax'+'\n')
+            elif(x1.type.type=='char' and x1.type.pointer_count()==0):
+                self.gen.asm.append('\tmov edi, eax\n')
+                self.gen.asm.append("\tmovsx eax, BYTE PTR"+x2addr+'\n')
+                self.gen.asm.append("\tmov BYTE PTR "+x1addr.replace("eax","edi")+', eax'+'\n')
+                self.gen.asm.append('\tmov eax, edi\n')
+            else:
+                if(not x1.offset):
+                    self.gen.asm.append("\tmov eax, "+x2addr+'\n')
+                    self.gen.asm.append("\tmov "+x1addr+', eax'+'\n')
+                else:
+                    self.gen.asm.append('\tmov edi, eax\n')
+                    self.gen.asm.append("\tmov eax, "+x2addr+'\n')
+                    self.gen.asm.append("\tmov "+x1addr.replace("eax","edi")+', eax'+'\n')
+                    self.gen.asm.append('\tmov eax, edi\n')
         elif(isinstance(x2,Data)):
-            self.gen.asm.append('\tmov '+x1+', '+x2addr+'\n')
+            if(x2.type.type=='char' and x2.type.pointer_count()==0):
+                self.gen.asm.append('\tmovsx '+x1+', BYTE PTR'+x2addr+'\n')
+            else:
+                self.gen.asm.append('\tmov '+x1+', '+x2addr+'\n')
         elif(isinstance(x1,Data)):
             if(isinstance(x2,int)):
-                self.gen.asm.append('\tmov '+x1addr+', %d'%x2+'\n')
+                if(x1.type.type=='char' and x1.type.pointer_count()==0):
+                    self.gen.asm.append('\tmov BYTE PTR '+x1addr+', %d'%x2+'\n')
+                else:
+                    self.gen.asm.append('\tmov DWORD PTR '+x1addr+', %d'%x2+'\n')
             else:
-                self.gen.asm.append('\tmov '+x1addr+', '+x2+'\n')
+                if(x1.type.type=='char' and x1.type.pointer_count()==0):
+                    self.gen.asm.append('\tmov BYTE PTR '+x1addr+', '+x2+'\n')
+                else:
+                    self.gen.asm.append('\tmov '+x1addr+', '+x2+'\n')
         else:
             if(isinstance(x2,int)):
                 self.gen.asm.append('\tmov '+x1+', %d'%x2+'\n')
@@ -1081,7 +1135,7 @@ class utility:
 
     def passPara(self,para):
             if(para in self.registers):
-                self.gen.asm.append('\tmov DWORD DWORD '+'[esp+%d], '%self.callOffset+' eax'+'\n')
+                self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                 return
             if(isinstance(para,Data)):
                 Type=para.type.type
@@ -1105,26 +1159,24 @@ class utility:
                     self.gen.asm.append("\tmov eax, "+'DWORD PTR '+addr+'\n')
                     self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                     self.callOffset+=4
-                elif(Type=='const int'):
-                    source=int(para)
-                    self.callOffset+=4
-                elif(Type=='const char'):
-                    source=char(para)
                 elif(Type=='double'):
-                    self.gen.asm.append('\tmov DWORD PTR '+"eax, "+addr+'\n')
-                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
-                    base=int(re.findall('[1-9]+',addr)[0])
-                    addr=4+base
-                    strAddr=addr.replace(str(base),str(addr))
+                    self.gen.asm.append('\tmov '+"esi, "+addr+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' esi'+'\n')
+                    try:
+                        base=int(re.findall('[0-9]+',addr)[0])
+                        num=4+base
+                        strAddr=addr.replace(str(base),str(num))
+                    except Exception,e:
+                        strAddr=addr[:-1]+"+4"+addr[-1:]
                     self.callOffset+=4
-                    self.gen.asm.append('\tmov DWORD PTR '+"eax, "+strAddr+'\n')
-                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
+                    self.gen.asm.append('\tmov '+"esi, "+strAddr+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' esi'+'\n')
                     self.callOffset+=4
                 elif(Type=='struct'):
                     for i in range(0,para.size/4+1):
                         base=int(re.findall('[1-9]+',addr)[0])
-                        addr=i*4+base
-                        strAddr=addr.replace(str(base),str(addr))
+                        num=i*4+base
+                        strAddr=addr.replace(str(base),str(num))
                         self.gen.asm.append('\tmov DWORD PTR '+"eax, "+strAddr+'\n')
                         self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
                         self.callOffset+=4
@@ -1135,9 +1187,14 @@ class utility:
                     self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+'OFFSET FLAT:'+self.constMap[para]+'\n')
                     self.callOffset+=4
                 elif(isinstance(para,float)):
-                    self.gen.asm.append('\tmov eax, DWORD PTR'+self.constMap[para]+'\n')
+                    for i in range(2):
+                        self.gen.asm.append('\tmov eax, DWORD PTR'+self.constMap[para]+'\n')
+                        self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
+                        self.callOffset+=4
+                elif(isinstance(para,int)):
+                    self.gen.asm.append('\tmov eax, '+str(para)+'\n')
                     self.gen.asm.append('\tmov DWORD PTR '+'[esp+%d], '%self.callOffset+' eax'+'\n')
-                    self.callOffset+=8
+                    self.callOffset+=4
                 else:
                     raise TypeError('error in passPara\n')
             
@@ -1167,29 +1224,32 @@ class utility:
             #para:str Type:string
             Type=para[1].type
             pointNum=para[1].pointer_count()
-            localAddr="[esp+%d]"%self.localOffset
             if(pointNum>0):
-                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
-                self.gen.asm.append('\tmov DWORD PTR '+localAddr+' eax\n')
+                localAddr="[esp+%d]"%(self.localOffset-4)
+                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp+%d]"%self.paraOffset+'\n')
+                self.gen.asm.append('\tmov DWORD PTR '+localAddr+', eax\n')
                 self.paraOffset+=4
-                self.localOffset+=4
+                self.localOffset-=4
             elif(Type=='char'):
-                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
-                self.gen.asm.append('\tmov BYTE PTR '+localAddr+' al\n')
+                localAddr="[esp+%d]"%(self.localOffset-4)
+                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp+%d]"%self.paraOffset+'\n')
+                self.gen.asm.append('\tmov BYTE PTR '+localAddr+', al\n')
                 self.paraOffset+=4
-                self.localOffset+=4
+                self.localOffset-=4
             elif(Type=='int'):
-                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
-                self.gen.asm.append('\tmov DWORD PTR '+localAddr+' eax\n')
+                localAddr="[esp+%d]"%(self.localOffset-4)
+                self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp+%d]"%self.paraOffset+'\n')
+                self.gen.asm.append('\tmov DWORD PTR '+localAddr+', eax\n')
                 self.paraOffset+=4
-                self.localOffset+=4
+                self.localOffset-=4
             elif(Type=='double'):
                 for i in range(0,2):
-                    self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp-%d]"%self.paraOffset+'\n')
-                    self.gen.asm.append('\tmov DWORD PTR '+localAddr+' eax\n')
+                    localAddr="[esp+%d]"%(self.localOffset-4)
+                    self.gen.asm.append('\tmov '+"eax, DWORD PTR "+"[ebp+%d]"%self.paraOffset+'\n')
+                    self.gen.asm.append('\tmov DWORD PTR '+localAddr+', eax\n')
                     self.paraOffset+=4
-                    self.localOffset+=4
-            self.currentMap.update({para.name:{'reg':0,'type':Type,'addr':localAddr}})
+                    self.localOffset-=4
+            self.currentMap.update({para[0]:{'reg':0,'type':Type,'addr':localAddr}})
 
         return
 
@@ -1207,7 +1267,10 @@ class utility:
         #         self.gen.asm.append('\tmov '+self.currentMap[vName]['addr']+', eax\n')
         self.callOffset=0
         if(isinstance(func,Data)):
-            self.gen.asm.append('\tcall '+func.name+'\n')
+            if(func.type.type=='function' and func.type.pointer_count()>0):
+                self.gen.asm.append('\tcall '+self.currentMap[func.name]["addr"]+'\n')
+            else:
+                self.gen.asm.append('\tcall '+func.name+'\n')
         else:
             self.gen.asm.append('\tcall '+func+'\n')
         return 'eax'
