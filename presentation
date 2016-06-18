@@ -1,3 +1,72 @@
+Error recovery
+
+Adding error rules to our BNF
+Adding EOF token to handle the last missing right curly bracket
+
+So that we can discover most common mistakes and do error recovery (still build the right parsing tree)
+
+can handle:
+1. missing semicolon
+2. missing right curly bracket
+3. some error identifier (不符合C标识符命名规则的)
+4. error token after operator
+以上4条均能进行error recovery，返回正确的语法树
+5. 不符合 ANSI C 的各种语法 （error_pos.c)
+
+test files:
+test1.c  all test
+test2.c  missing semicolon
+missSEMI.c all errors token after operator + missing semicolon + errorID + missing right curly
+errorID.c errorID
+missRightCurly.c missing right curly
+
+
+Syntax error finder:
+1. 函数声明与函数定义的参数列表不一致
+2. 变量重复定义
+3. 赋值时 类型不匹配
+4. 表达式中，操作数的类型与规定的类型不一致
+5. typo，打字错误。会从符号表中找出最接近的标识符，给出提示
+6. 函数调用时参数表不符合函数定义
+7. 函数实际返回值类型 不符合 函数定义中的函数返回值类型
+
+//1. 函数定义声明不一致
+int f(int i,...);
+int f(int j){
+    return 0;
+}
+
+int g(int i){
+    return 0;
+}
+typedef struct{
+    int n;
+} A;
+int main(int argc, char const *argv[])
+{
+
+    //2. 重复定义
+    int k;
+    int k;
+    //缺少分号
+    int i
+    int count;
+    //3. 类型不匹配
+    A a;
+    a = 5;
+    //4. 未定义变量
+    var = 3;
+    //5. 操作数类型错误
+    1.0 >> 4;
+    //打字错误
+    cont = 4;
+    g(1.0);
+    //6. 参数表不匹配
+    g(a);
+    //7. 返回值不匹配
+    return a;
+}
+
 1. 基本功能：
     计算add sub mul div 等
     逻辑and or not
@@ -9,12 +78,16 @@
     浮点数运算fld fstp fadd fsub fmul fdiv
 
 2. 优化
-    寄存器优化：
-        将ebx,ecx,edx作为临时变量的暂存区域
-        将esi edi作为eax的交换区
-    指令优化：
-        *2 / 4 / 8。。。 ->sal
-        lea 2*eax+offset -> reg
+    前端：
+        constant folding
+        死代码消除
+    后端优化：
+        寄存器优化：
+            将ebx,ecx,edx作为临时变量的暂存区域
+            将esi edi作为eax的交换区
+        指令优化：
+            *2 / 4 / 8。。。 ->sal
+            lea 2*eax+offset -> reg
 
 3. 支持特性：
     看样例

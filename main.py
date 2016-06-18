@@ -23,6 +23,7 @@ if __name__ == '__main__':
     # print global_context
     # print error
     # printAST(global_context.local['main'].compound_statement.ast)
-    gen = generator()
-    gen.generate()
-    gen.output('out.s')
+    if(not error[0]):
+        gen = generator()
+        gen.generate()
+        gen.output('out.s')
