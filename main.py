@@ -14,6 +14,9 @@ def preprocess(source):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print "Usage: python main.py <source_file> <x86asm_file>\nEnvironment: Python2.7, Linux."
+        exit(1)
     File = sys.argv[1]
     codes = preprocess(os.path.abspath("test/"+File))
     pt = parser.parse(codes, lexer=ZCClexer)
@@ -26,4 +29,4 @@ if __name__ == '__main__':
     if(not error[0]):
         gen = generator()
         gen.generate()
-        gen.output('out.s')
+        gen.output(sys.argv[2])
