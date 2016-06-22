@@ -48,7 +48,6 @@ class utility:
     def globalInitialize(self):
         self.gen.asm.append('\t.intel_syntax noprefix\n')
         for key in global_context.local:
-            print(key)
             value = global_context.local[key]
             if(value.type!='function'):
                 # if(value.type=='struct'):
@@ -111,7 +110,6 @@ class utility:
             s_class=value.storage_class
             Type=value.type
             size=value.Size()
-            print(size)
             # if(Type == 'struct'):
             #     st=self.__parseStruct(v,value)
             #     for member in st:
@@ -1128,8 +1126,8 @@ class utility:
                         self.gen.asm.append('\tmov '+x1+', '+x2+'\n')
                     self.gen.asm.append('\tmov '+x1+', '+self.constMap[x2]+'\n')
                 except Exception,e:
-                    print('ok!\n')
-                    print(self.constMap)
+                    # print(self.constMap)
+                    pass
         return x1
 
 
