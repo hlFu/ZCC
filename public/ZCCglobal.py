@@ -211,7 +211,7 @@ class ArrayType(CType):
         :type length: int
         :return:
         """
-        CType.__init__(self, 'array', size=length * c_type.size)
+        CType.__init__(self, 'array', size=length * c_type.Size())
         self.length = length
         self.member_type = c_type
         self.storage_class = c_type.storage_class

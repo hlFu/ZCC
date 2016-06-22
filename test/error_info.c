@@ -17,8 +17,6 @@ int main(int argc, char const *argv[])
     //重复定义
     int k;
     int k;
-    //缺少分号
-    int i
     int count;
     //类型不匹配
     A a;
@@ -35,3 +33,30 @@ int main(int argc, char const *argv[])
     //返回值不匹配
     return a;
 }
+
+// Semantic Error at line 4:  'int function(int j,)' is not consistent with old declaration 'int function(int i,...)'
+//     int f ( int j ) { return 0 ; }
+//
+// Syntax error at 'int', at line: 22, column: 5.
+// Error type: missing semicolon before int. at line: 22, lex pos: 258 in declaration.
+//
+// Semantic Error at line 18:  Redeclare k
+//     k
+//
+// Semantic Error at line 23:  'int const' cannot be assigned to 'struct {'n': int}'
+//     a = 5
+//
+// Semantic Error at line 25:  Unknown identifier var
+//     var
+//
+// Semantic Error at line 27:  double const is not or cannot be recognized as integer
+//     1.0
+//
+// Semantic Error at line 29:  Unknown identifier 'cont', do you mean 'count'?
+//     cont
+//
+// Semantic Error at line 32:  'struct {'n': int}' can't convert to 'int'
+//     a
+//
+// Semantic Error at line 34:  'struct {'n': int}' is not consistant with the function return type 'int'
+//     return a ;
