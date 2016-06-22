@@ -602,8 +602,12 @@ class utility:
                 if(x1=='eax'):
                     self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
                 else:
-                    self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
-                    self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
+                    if(x2=='eax'):
+                        self.gen.asm.append("\tsub "+str(x1)+', eax'+'\n')
+                        self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
+                    else:
+                        self.gen.asm.append("\tmov eax, "+str(x1)+'\n')
+                        self.gen.asm.append("\tsub eax, "+str(x2)+'\n')
         
             return 'eax'
 

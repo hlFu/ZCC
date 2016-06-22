@@ -3,9 +3,9 @@ int main()
 {
     int i,j;
     j=5;
-    scanf("%lf",&i);
-    i=i*j+i*(i*j-i*j)/j;
-    printf("%lf\n",i);
+    scanf("%d",&i);
+    i=i*j+i*(i*j-j*j+i);
+    printf("%d\n",i);
 
     return 0;
 }
