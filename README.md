@@ -1,18 +1,28 @@
 # ZCC
 ZJU standard C Compiler
 
+<!--
 ##免责声明
 我看大家都没动手，为了美好的明天，必须出来打个底
 如果大家觉得定的有什么不对的地方，欢迎修改！！！
 
-##项目分布
+## 项目分布
 请将：  
     lex和yac放在yyparse文件夹  
     symbol table和类型检查放在symbol  
     机器码生成放在generation  
     全局变量放在public  
     优化代码放在各自部分的文件夹下  
+-->
 
+## Code Organization
+* Lex and Yas related codes are in the folder *yyparse*.
+* Symbol table and Type check related codes are in the folder *symbol*.
+* Generating machine code related codes are in the folder *generation*.
+* Treating Special variables related codes are in the folder *public*.
+* Optimization codes are stored separately in each folder.
+
+<!--
 ##命名规则
 为了不出现引用错误，简单的定一下规则，（再次声明觉得不科学的一定要提出来） 
 ###类名
@@ -27,16 +37,19 @@ ZJU standard C Compiler
 2.请把你觉得可重用的函数写到public文件夹  
 3.因为耦合不是很多，大家基本不会再一个文件里编写，所以不开分支也行，但是push之前一定保证能跑起来  
 
-##关于tree结构和BNF
-  实话说，我看了一下总结出：没开始写就想定树结构，简直就是在搞笑，所以我仿照tiny语言擅自定了一个，在编写过程中人人都可以修改，但一定要写注释
-那个BNF也是同样的，要出来商量BNF，效率太低，加上我们吹牛的时间，必定雪崩，于是我找了一个，大家每个人都要看一遍，具体为什么其麦学长那天也说了，然可能的话看的过程写下注释，这样后面的人更好理解，也可以揪出你理解的错误，然后发现问题或者要修改请立即提出
+##遥远的祝福
+祝大家大程满分，如果可以的话，希望能在下个星期日之前完成v1.0
 
 ##关于wiki
 请大家踊跃地写wiki，这是为了整组的效率，比如做过js解释器的李某其麦学长，如果有什么让大家能快速上手py parse的资料，请把链接写到wiki
 
-##遥远的祝福
-祝大家大程满分，如果可以的话，希望能在下个星期日之前完成v1.0
+##关于tree结构和BNF
+  实话说，我看了一下总结出：没开始写就想定树结构，简直就是在搞笑，所以我仿照tiny语言擅自定了一个，在编写过程中人人都可以修改，但一定要写注释
+那个BNF也是同样的，要出来商量BNF，效率太低，加上我们吹牛的时间，必定雪崩，于是我找了一个，大家每个人都要看一遍，具体为什么其麦学长那天也说了，然可能的话看的过程写下注释，这样后面的人更好理解，也可以揪出你理解的错误，然后发现问题或者要修改请立即提出
+-->
 
+<!--
+FU BABA is supposed to complete this part!
 ## 目前语法分析的能力
 对于正确的程序，语法分析，符号表建立，都完成了。
 文档写的不多，我会给你熊学长和付学长系统的讲一遍，之后你们有疑问直接问我这个活文档
@@ -52,8 +65,10 @@ ZJU standard C Compiler
 你们一定要保证测试样例是正确的，因为我只进行了部分的语法检查。
 你们的样例都要先用gcc测一遍正确性，再来跑我们的zcc。
 其它的特性，等我把别的作业写一写，再来加。
+-->
 
 
+<!--
 ##Problems
 * 错误处理
 
@@ -65,8 +80,8 @@ typedef struct{
     int a;
     double c;
 }mytype;
-
-语法树：
+-->
+## Parsing tree sample：
 
 ```
 declaration
@@ -109,17 +124,31 @@ declaration
                     mytype
     ;
 ```    
-##代码生成
-###generation
-用来解析树和调用self.tools中的函数进行翻译  
-在generation.generate中有详细注释和例子
+## Code Generation
+### Miscellaneous
+<!--用来解析树和调用self.tools中的函数进行翻译  -->
+Call functions in *self.tools* to translate.
+Detailed comments and examples can be found in generation.generate.
+
+### Basic X86 supports
+*    Calculation: add, sub, mul, div.
+*    Logic: and, or, not.
+*    Jump: jmp, je, jg, jl.
+*    Shift: sal, sar.
+*    Function: call, ret.
+*    Stack: push, pop.
+*    Float number operation: fld, fstp, fadd, fsub, fmul, fdiv.
+*    Global/Static variables, Constant float number, String
+
+<!--
 ###utility
 翻译的工具函数  
 已完成各种初始化、变量绑定、寄存器简单优化  
 目前支持赋值、简单计算、跳转、call等基本功能
+-->
 
-##代码优化
-###优化类型
+## Code Optimization
+### The optimization types supported
 http://www.compileroptimizations.com/index.html
-###constant propagation
+### constant propagation
 http://people.eecs.berkeley.edu/~bodik/cs264/lectures/4-chaotic-notes.pdf
