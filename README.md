@@ -81,7 +81,7 @@ typedef struct{
     double c;
 }mytype;
 -->
-## Parsing tree sample：
+## Parsing Tree Sample：
 
 ```
 declaration
@@ -151,5 +151,5 @@ Detailed comments and examples can be found in *generation.generate*.
 ## Code Optimization
 ### The optimization types supported
 http://www.compileroptimizations.com/index.html
-### constant propagation
+### Constant propagation
 http://people.eecs.berkeley.edu/~bodik/cs264/lectures/4-chaotic-notes.pdf
