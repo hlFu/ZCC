@@ -128,7 +128,8 @@ declaration
 ### Miscellaneous
 <!--用来解析树和调用self.tools中的函数进行翻译  -->
 Call functions in *self.tools* to translate.
-Detailed comments and examples can be found in generation.generate.
+
+Detailed comments and examples can be found in *generation.generate*.
 
 ### Basic X86 supports
 *    Calculation: add, sub, mul, div.
